@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { 
   ShieldCheck, 
@@ -9,12 +9,57 @@ import {
   Lock, 
   Mail, 
   ArrowRight, 
-  CheckCircle2 
+  CheckCircle2,
+  ArrowUp
 } from 'lucide-react';
+
+const TRUST_ITEMS = [
+  {
+    icon: FlaskConical,
+    title: '\u226599% High Purity',
+    sub: 'HPLC & Mass Spec verified batch testing'
+  },
+  {
+    icon: ShieldCheck,
+    title: 'Third-Party Tested',
+    sub: 'Independent USA certified laboratory analysis'
+  },
+  {
+    icon: Truck,
+    title: 'Temperature Controlled',
+    sub: 'Cold-chain insulated express packaging'
+  },
+  {
+    icon: Lock,
+    title: 'Secure Compliance',
+    sub: '256-Bit encrypted research transactions'
+  }
+];
 
 export default function Footer() {
   const [email, setEmail] = useState('');
   const [subscribed, setSubscribed] = useState(false);
+  const [showScrollTop, setShowScrollTop] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      if (window.scrollY > 300) {
+        setShowScrollTop(true);
+      } else {
+        setShowScrollTop(false);
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  const scrollToTop = () => {
+    window.scrollTo({
+      top: 0,
+      behavior: 'smooth'
+    });
+  };
 
   const handleSubscribe = (e) => {
     e.preventDefault();
@@ -28,46 +73,62 @@ export default function Footer() {
     <footer className="modern-footer">
       {/* Top Value Propositions / Trust Strip */}
       <div className="footer-trust-strip">
-        <div className="footer-container">
+        {/* Desktop / Tablet Grid View */}
+        <div className="footer-container trust-desktop-wrap">
           <div className="trust-grid">
-            <div className="trust-item">
-              <div className="trust-icon-box">
-                <FlaskConical size={22} />
-              </div>
-              <div>
-                <h4 className="trust-title">&ge;99% High Purity</h4>
-                <p className="trust-sub">HPLC &amp; Mass Spec verified batch testing</p>
-              </div>
-            </div>
+            {TRUST_ITEMS.map((item, idx) => {
+              const Icon = item.icon;
+              return (
+                <div key={idx} className="trust-item">
+                  <div className="trust-icon-box">
+                    <Icon size={22} />
+                  </div>
+                  <div>
+                    <h4 className="trust-title">{item.title}</h4>
+                    <p className="trust-sub">{item.sub}</p>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
 
-            <div className="trust-item">
-              <div className="trust-icon-box">
-                <ShieldCheck size={22} />
-              </div>
-              <div>
-                <h4 className="trust-title">Third-Party Tested</h4>
-                <p className="trust-sub">Independent USA certified laboratory analysis</p>
-              </div>
+        {/* Mobile 1-Row Infinite Scroll Marquee */}
+        <div className="trust-marquee-wrap" aria-label="Key Trust Signals">
+          <div className="trust-marquee-track">
+            {/* Primary group */}
+            <div className="trust-marquee-group">
+              {TRUST_ITEMS.map((item, idx) => {
+                const Icon = item.icon;
+                return (
+                  <div key={`m1-${idx}`} className="trust-item">
+                    <div className="trust-icon-box">
+                      <Icon size={15} />
+                    </div>
+                    <div className="trust-text-box">
+                      <h4 className="trust-title">{item.title}</h4>
+                      <p className="trust-sub">{item.sub}</p>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
-
-            <div className="trust-item">
-              <div className="trust-icon-box">
-                <Truck size={22} />
-              </div>
-              <div>
-                <h4 className="trust-title">Temperature Controlled</h4>
-                <p className="trust-sub">Cold-chain insulated express packaging</p>
-              </div>
-            </div>
-
-            <div className="trust-item">
-              <div className="trust-icon-box">
-                <Lock size={22} />
-              </div>
-              <div>
-                <h4 className="trust-title">Secure Compliance</h4>
-                <p className="trust-sub">256-Bit encrypted research transactions</p>
-              </div>
+            {/* Duplicate group for seamless loop */}
+            <div className="trust-marquee-group" aria-hidden="true">
+              {TRUST_ITEMS.map((item, idx) => {
+                const Icon = item.icon;
+                return (
+                  <div key={`m2-${idx}`} className="trust-item">
+                    <div className="trust-icon-box">
+                      <Icon size={15} />
+                    </div>
+                    <div className="trust-text-box">
+                      <h4 className="trust-title">{item.title}</h4>
+                      <p className="trust-sub">{item.sub}</p>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
         </div>
@@ -183,10 +244,32 @@ export default function Footer() {
               <span className="secure-badge">
                 <CheckCircle2 size={13} /> ISO 9001 Compliant Synthesis
               </span>
+              <button
+                type="button"
+                onClick={scrollToTop}
+                className="footer-bottom-scroll-btn"
+                aria-label="Scroll to top"
+                title="Scroll to top"
+              >
+                <ArrowUp size={15} strokeWidth={2.4} />
+              </button>
             </div>
           </div>
         </div>
       </div>
+
+      {/* Floating Modern Scroll-to-Top Button */}
+      <button
+        type="button"
+        onClick={scrollToTop}
+        className={`modern-scroll-top-btn ${showScrollTop ? 'active' : ''}`}
+        aria-label="Scroll to top"
+        title="Scroll to top"
+      >
+        <span className="scroll-btn-inner">
+          <ArrowUp size={19} strokeWidth={2.4} />
+        </span>
+      </button>
     </footer>
   );
 }
