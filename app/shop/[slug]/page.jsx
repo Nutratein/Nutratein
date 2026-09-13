@@ -269,10 +269,10 @@ export default function ProductDetail() {
     return (
       <div className="pdp-page-wrapper">
         <div className="container" style={{ padding: '80px 24px', textAlign: 'center' }}>
-          <div style={{ maxWidth: 440, margin: '0 auto', background: '#fff', border: '1px solid #e2e8f0', borderRadius: 16, padding: 36 }}>
+          <div style={{ maxWidth: 440, margin: '0 auto', background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: 16, padding: 36 }}>
             <span style={{ fontSize: 40, display: 'block', marginBottom: 12 }}>🧪</span>
-            <h2 style={{ fontSize: 20, fontWeight: 800, color: '#0f172a', marginBottom: 8 }}>Compound Not Found</h2>
-            <p style={{ fontSize: 14, color: '#64748b', marginBottom: 20 }}>The peptide compound you requested could not be located in our research catalog.</p>
+            <h2 style={{ fontSize: 20, fontWeight: 800, color: 'var(--color-ink)', marginBottom: 8 }}>Compound Not Found</h2>
+            <p style={{ fontSize: 14, color: 'var(--color-ink-soft)', marginBottom: 20 }}>The peptide compound you requested could not be located in our research catalog.</p>
             <Link href="/shop" className="btn btn-primary btn-sm">
               <ArrowLeft size={14} /> Back to Catalog
             </Link>
@@ -342,7 +342,7 @@ export default function ProductDetail() {
                     height="18"
                     viewBox="0 0 24 24"
                     fill={isWishlisted ? '#c8102e' : 'none'}
-                    stroke={isWishlisted ? '#c8102e' : '#64748b'}
+                    stroke={isWishlisted ? '#c8102e' : 'var(--color-ink-soft)'}
                     strokeWidth="2"
                     strokeLinecap="round"
                     strokeLinejoin="round"
@@ -401,8 +401,8 @@ export default function ProductDetail() {
                     <Star
                       key={star}
                       size={14}
-                      fill={star <= Math.round(ratingVal) && reviewsVal > 0 ? '#dc2626' : '#e2e8f0'}
-                      stroke={star <= Math.round(ratingVal) && reviewsVal > 0 ? '#dc2626' : '#cbd5e1'}
+                      fill={star <= Math.round(ratingVal) && reviewsVal > 0 ? '#dc2626' : '#2a2e37'}
+                      stroke={star <= Math.round(ratingVal) && reviewsVal > 0 ? '#dc2626' : '#454a56'}
                     />
                   ))}
                 </div>
@@ -727,12 +727,12 @@ export default function ProductDetail() {
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 24, marginBottom: 28 }}>
                     <div>
                       <h3 style={{ margin: '0 0 6px', fontSize: 20 }}>Verified Laboratory Reviews</h3>
-                      <p style={{ color: '#64748b', fontSize: 13.5, margin: 0 }}>
+                      <p style={{ color: 'var(--color-ink-soft)', fontSize: 13.5, margin: 0 }}>
                         Real feedback submitted by certified researchers and laboratory partners.
                       </p>
                     </div>
 
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 14, background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 12, padding: '10px 18px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 14, background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: 12, padding: '10px 18px' }}>
                       <span style={{ fontSize: 28, fontWeight: 800, color: 'var(--color-ink)' }}>{ratingVal.toFixed(1)}</span>
                       <div>
                         <div style={{ display: 'flex', gap: 2 }}>
@@ -740,12 +740,12 @@ export default function ProductDetail() {
                             <Star
                               key={s}
                               size={14}
-                              fill={s <= Math.round(ratingVal) && reviewsVal > 0 ? '#dc2626' : '#e2e8f0'}
-                              stroke={s <= Math.round(ratingVal) && reviewsVal > 0 ? '#dc2626' : '#cbd5e1'}
+                              fill={s <= Math.round(ratingVal) && reviewsVal > 0 ? '#dc2626' : '#2a2e37'}
+                              stroke={s <= Math.round(ratingVal) && reviewsVal > 0 ? '#dc2626' : '#454a56'}
                             />
                           ))}
                         </div>
-                        <span style={{ fontSize: 12, color: '#64748b' }}>
+                        <span style={{ fontSize: 12, color: 'var(--color-ink-soft)' }}>
                           Based on {reviewsVal} review{reviewsVal === 1 ? '' : 's'}
                         </span>
                       </div>
@@ -755,12 +755,12 @@ export default function ProductDetail() {
                   {/* Compact Review Submission Form */}
                   <div
                     style={{
-                      background: '#ffffff',
+                      background: 'var(--color-surface)',
                       border: '1px solid var(--color-border)',
                       borderRadius: 14,
                       padding: '20px 22px',
                       marginBottom: 28,
-                      boxShadow: '0 2px 8px rgba(0,0,0,0.02)',
+                      boxShadow: '0 2px 8px rgba(0,0,0,0.4)',
                     }}
                   >
                     <h4 style={{ margin: '0 0 14px', fontSize: 15, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -778,7 +778,7 @@ export default function ProductDetail() {
                           display: 'flex',
                           alignItems: 'center',
                           gap: 10,
-                          color: '#047857',
+                          color: '#34d399',
                           fontSize: 13.5,
                         }}
                       >
@@ -791,7 +791,7 @@ export default function ProductDetail() {
                       <form onSubmit={handleSubmitReview}>
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 14, marginBottom: 14 }}>
                           <div>
-                            <label style={{ display: 'block', fontSize: 12.5, fontWeight: 650, marginBottom: 6, color: '#475569' }}>
+                            <label style={{ display: 'block', fontSize: 12.5, fontWeight: 650, marginBottom: 6, color: 'var(--color-ink-soft)' }}>
                               Your Name / Researcher ID *
                             </label>
                             <input
@@ -804,7 +804,7 @@ export default function ProductDetail() {
                                 width: '100%',
                                 padding: '8px 12px',
                                 fontSize: 13.5,
-                                border: '1px solid #cbd5e1',
+                                border: '1px solid var(--color-border)',
                                 borderRadius: 8,
                                 outline: 'none',
                               }}
@@ -812,7 +812,7 @@ export default function ProductDetail() {
                           </div>
 
                           <div>
-                            <label style={{ display: 'block', fontSize: 12.5, fontWeight: 650, marginBottom: 6, color: '#475569' }}>
+                            <label style={{ display: 'block', fontSize: 12.5, fontWeight: 650, marginBottom: 6, color: 'var(--color-ink-soft)' }}>
                               Rating *
                             </label>
                             <div style={{ display: 'flex', alignItems: 'center', gap: 6, height: 38 }}>
@@ -826,12 +826,12 @@ export default function ProductDetail() {
                                 >
                                   <Star
                                     size={20}
-                                    fill={star <= reviewForm.rating ? '#dc2626' : '#e2e8f0'}
-                                    stroke={star <= reviewForm.rating ? '#dc2626' : '#cbd5e1'}
+                                    fill={star <= reviewForm.rating ? '#dc2626' : '#2a2e37'}
+                                    stroke={star <= reviewForm.rating ? '#dc2626' : '#454a56'}
                                   />
                                 </button>
                               ))}
-                              <span style={{ fontSize: 13, fontWeight: 700, marginLeft: 6, color: '#475569' }}>
+                              <span style={{ fontSize: 13, fontWeight: 700, marginLeft: 6, color: 'var(--color-ink-soft)' }}>
                                 {reviewForm.rating} of 5
                               </span>
                             </div>
@@ -839,7 +839,7 @@ export default function ProductDetail() {
                         </div>
 
                         <div style={{ marginBottom: 14 }}>
-                          <label style={{ display: 'block', fontSize: 12.5, fontWeight: 650, marginBottom: 6, color: '#475569' }}>
+                          <label style={{ display: 'block', fontSize: 12.5, fontWeight: 650, marginBottom: 6, color: 'var(--color-ink-soft)' }}>
                             Your Feedback / Findings *
                           </label>
                           <textarea
@@ -852,7 +852,7 @@ export default function ProductDetail() {
                               width: '100%',
                               padding: '10px 12px',
                               fontSize: 13.5,
-                              border: '1px solid #cbd5e1',
+                              border: '1px solid var(--color-border)',
                               borderRadius: 8,
                               outline: 'none',
                               resize: 'vertical',
@@ -876,8 +876,8 @@ export default function ProductDetail() {
 
                   {/* List of Approved Reviews */}
                   {productReviews.length === 0 ? (
-                    <div style={{ padding: '32px 20px', textAlign: 'center', background: '#f8fafc', borderRadius: 12, border: '1px dashed #cbd5e1' }}>
-                      <p style={{ color: '#64748b', fontSize: 13.5, margin: '0 0 4px' }}>
+                    <div style={{ padding: '32px 20px', textAlign: 'center', background: 'var(--color-surface)', borderRadius: 12, border: '1px dashed rgba(255,255,255,0.2)' }}>
+                      <p style={{ color: 'var(--color-ink-soft)', fontSize: 13.5, margin: '0 0 4px' }}>
                         No published reviews yet.
                       </p>
                       <span style={{ fontSize: 12, color: '#94a3b8' }}>
@@ -890,17 +890,17 @@ export default function ProductDetail() {
                         <div
                           key={rev.id}
                           style={{
-                            background: '#ffffff',
-                            border: '1px solid #f1f5f9',
+                            background: 'var(--color-surface)',
+                            border: '1px solid var(--color-border)',
                             borderRadius: 12,
                             padding: '16px 18px',
-                            boxShadow: '0 1px 4px rgba(0,0,0,0.02)',
+                            boxShadow: '0 1px 4px rgba(0,0,0,0.4)',
                           }}
                         >
                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                               <strong style={{ fontSize: 14, color: 'var(--color-ink)' }}>{rev.user_name}</strong>
-                              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 11, color: '#059669', background: 'rgba(16,185,129,0.1)', padding: '2px 7px', borderRadius: 100 }}>
+                              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 11, color: '#34d399', background: 'rgba(16,185,129,0.12)', padding: '2px 7px', borderRadius: 100 }}>
                                 <CheckCircle2 size={11} /> Verified Researcher
                               </span>
                             </div>
@@ -914,13 +914,13 @@ export default function ProductDetail() {
                               <Star
                                 key={s}
                                 size={13}
-                                fill={s <= rev.rating ? '#dc2626' : '#e2e8f0'}
-                                stroke={s <= rev.rating ? '#dc2626' : '#cbd5e1'}
+                                fill={s <= rev.rating ? '#dc2626' : '#2a2e37'}
+                                stroke={s <= rev.rating ? '#dc2626' : '#454a56'}
                               />
                             ))}
                           </div>
 
-                          <p style={{ fontSize: 13.5, color: '#334155', margin: 0, lineHeight: 1.5 }}>
+                          <p style={{ fontSize: 13.5, color: 'var(--color-ink-soft)', margin: 0, lineHeight: 1.5 }}>
                             {rev.comment}
                           </p>
                         </div>

@@ -268,7 +268,7 @@ export default function AdminDashboard() {
         <div className="admin-card-section-header">
           <div>
             <h3>Recent Store Orders</h3>
-            <p style={{ fontSize: 13, color: '#64748b', margin: '2px 0 0' }}>
+            <p style={{ fontSize: 13, color: '#a8adb4', margin: '2px 0 0' }}>
               Showing latest {filteredOrders.length} customer purchases
             </p>
           </div>
@@ -319,7 +319,7 @@ export default function AdminDashboard() {
           <div style={{ padding: '48px 20px', textAlign: 'center' }}>
             <AlertCircle size={36} style={{ color: '#94a3b8', margin: '0 auto 12px' }} />
             <h4 style={{ margin: '0 0 6px', color: 'var(--color-ink)' }}>No Orders Matching</h4>
-            <p style={{ fontSize: 13, color: '#64748b', margin: 0 }}>
+            <p style={{ fontSize: 13, color: '#a8adb4', margin: 0 }}>
               Try adjusting your search query or status filter.
             </p>
           </div>
@@ -369,8 +369,8 @@ export default function AdminDashboard() {
                               width: 30,
                               height: 30,
                               borderRadius: '50%',
-                              background: '#e2e8f0',
-                              color: '#475569',
+                              background: '#232830',
+                              color: '#a8adb4',
                               display: 'flex',
                               alignItems: 'center',
                               justifyContent: 'center',
@@ -399,7 +399,7 @@ export default function AdminDashboard() {
                           ${Number(order.total || 0).toFixed(2)}
                         </strong>
                       </td>
-                      <td style={{ color: '#64748b', fontSize: 13 }}>
+                      <td style={{ color: '#a8adb4', fontSize: 13 }}>
                         {dateStr}
                       </td>
                       <td style={{ textAlign: 'right' }}>

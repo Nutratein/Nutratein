@@ -1,0 +1,39 @@
+import { Resend } from 'resend';
+import { NextResponse } from 'next/server';
+
+const resend = new Resend(process.env.RESEND_API_KEY);
+
+export async function POST(request) {
+  try {
+    const { name, email, subject, message } = await request.json();
+
+    if (!name || !email || !message) {
+      return NextResponse.json({ error: 'Name, email, and message are required.' }, { status: 400 });
+    }
+
+    const { error } = await resend.emails.send({
+      from: `Drago Pharma Website <${process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev'}>`,
+      to: process.env.CONTACT_RECEIVER_EMAIL || 'info@dragopharma.com',
+      replyTo: email,
+      subject: `[Contact Form] ${subject || 'General Inquiry'} — ${name}`,
+      html: `
+        <div style="font-family: sans-serif; line-height: 1.6;">
+          <h2>New Contact Form Submission</h2>
+          <p><strong>Name:</strong> ${name}</p>
+          <p><strong>Email:</strong> ${email}</p>
+          <p><strong>Subject:</strong> ${subject || 'General Inquiry'}</p>
+          <p><strong>Message:</strong></p>
+          <p>${String(message).replace(/\n/g, '<br/>')}</p>
+        </div>
+      `,
+    });
+
+    if (error) {
+      return NextResponse.json({ error: error.message || 'Failed to send email.' }, { status: 502 });
+    }
+
+    return NextResponse.json({ success: true });
+  } catch (err) {
+    return NextResponse.json({ error: 'Unexpected server error.' }, { status: 500 });
+  }
+}

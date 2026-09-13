@@ -26,11 +26,29 @@ export default function Contact() {
     message: '' 
   });
   const [sent, setSent] = useState(false);
+  const [sending, setSending] = useState(false);
+  const [sendError, setSendError] = useState('');
   const [copied, setCopied] = useState(false);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    setSent(true);
+    setSending(true);
+    setSendError('');
+    try {
+      const res = await fetch('/api/contact', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(form),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to send message.');
+      setSent(true);
+      setForm({ name: '', email: '', subject: 'General Inquiry', message: '' });
+    } catch (err) {
+      setSendError(err.message || 'Something went wrong. Please try again.');
+    } finally {
+      setSending(false);
+    }
   };
 
   const handleCopyEmail = () => {
@@ -141,8 +159,14 @@ export default function Contact() {
                 />
               </div>
 
-              <button type="submit" className="contact-submit-btn">
-                <span>Send Message</span>
+              {sendError && (
+                <p style={{ color: '#ff5c72', fontSize: 13.5, marginTop: -6, marginBottom: 14 }}>
+                  {sendError}
+                </p>
+              )}
+
+              <button type="submit" className="contact-submit-btn" disabled={sending}>
+                <span>{sending ? 'Sending...' : 'Send Message'}</span>
                 <Send size={15} />
               </button>
             </form>

@@ -491,8 +491,8 @@ function AccountContent() {
                                     height: 44, 
                                     overflow: 'hidden', 
                                     padding: 3, 
-                                    background: '#ffffff', 
-                                    border: '1px solid #e2e8f0', 
+                                    background: '#171b23',
+                                    border: '1px solid var(--color-border)',
                                     borderRadius: 8,
                                     display: 'flex',
                                     alignItems: 'center',
@@ -702,7 +702,7 @@ function AccountContent() {
               </div>
               <div className="account-data-row">
                 <span className="account-data-label">Membership Status</span>
-                <span className="account-data-val" style={{ color: '#059669' }}>
+                <span className="account-data-val" style={{ color: '#34d399' }}>
                   Verified Active
                 </span>
               </div>
@@ -739,7 +739,7 @@ function AccountContent() {
               </div>
               <div className="account-data-row">
                 <span className="account-data-label">Session Status</span>
-                <span className="account-data-val" style={{ color: '#059669' }}>
+                <span className="account-data-val" style={{ color: '#34d399' }}>
                   Secure SSL Protected
                 </span>
               </div>
@@ -788,7 +788,7 @@ function AccountContent() {
                 <div>{latestShippingAddress.country}</div>
               </div>
             ) : (
-              <p style={{ color: '#64748b', fontSize: 14 }}>
+              <p style={{ color: '#a8adb4', fontSize: 14 }}>
                 You haven&apos;t saved a shipping address yet. Your address will be automatically
                 remembered when you place your next checkout order.
               </p>

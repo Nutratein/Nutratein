@@ -267,7 +267,7 @@ export default function AdminProducts() {
                 fontSize: 13,
                 borderRadius: 8,
                 border: '1px solid var(--color-border)',
-                background: '#f8fafc',
+                background: '#171b23',
                 outline: 'none',
               }}
             >
@@ -290,7 +290,7 @@ export default function AdminProducts() {
           </div>
         ) : filteredProducts.length === 0 ? (
           <div style={{ padding: '48px 20px', textAlign: 'center' }}>
-            <p style={{ color: '#64748b', fontSize: 14 }}>No products found matching your filter.</p>
+            <p style={{ color: '#a8adb4', fontSize: 14 }}>No products found matching your filter.</p>
             <button onClick={startNew} className="account-btn-primary" style={{ marginTop: 10 }}>
               <Plus size={15} /> Add First Product
             </button>
@@ -327,7 +327,7 @@ export default function AdminProducts() {
                                 width: 38,
                                 height: 38,
                                 borderRadius: 8,
-                                background: '#f1f5f9',
+                                background: '#232830',
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'center',
@@ -345,8 +345,8 @@ export default function AdminProducts() {
                                 onClick={() => toggleFeatured(p)}
                                 style={{
                                   border: 'none',
-                                  background: p.featured ? '#fee2e2' : '#f1f5f9',
-                                  color: p.featured ? '#dc2626' : '#64748b',
+                                  background: p.featured ? 'rgba(220,38,38,0.15)' : '#232830',
+                                  color: p.featured ? '#dc2626' : '#a8adb4',
                                   padding: '2px 8px',
                                   borderRadius: 9999,
                                   fontSize: 11,
@@ -381,13 +381,13 @@ export default function AdminProducts() {
                       </td>
 
                       <td>
-                        <span style={{ fontWeight: 650, color: p.stock > 0 ? '#059669' : '#dc2626' }}>
+                        <span style={{ fontWeight: 650, color: p.stock > 0 ? '#34d399' : '#dc2626' }}>
                           {p.stock} units
                         </span>
                       </td>
 
                       <td>
-                        <span style={{ fontSize: 13, color: '#64748b' }}>{cat?.name || '—'}</span>
+                        <span style={{ fontSize: 13, color: '#a8adb4' }}>{cat?.name || '—'}</span>
                       </td>
 
                       <td>
@@ -449,14 +449,14 @@ export default function AdminProducts() {
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
               style={{
-                background: '#ffffff',
+                background: 'var(--color-surface)',
                 borderRadius: 20,
                 maxWidth: 900,
                 width: '100%',
                 maxHeight: '90vh',
                 display: 'flex',
                 flexDirection: 'column',
-                boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+                boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.55)',
                 overflow: 'hidden',
               }}
             >
@@ -464,24 +464,24 @@ export default function AdminProducts() {
               <div
                 style={{
                   padding: '20px 24px',
-                  borderBottom: '1px solid #e2e8f0',
+                  borderBottom: '1px solid var(--color-border)',
                   display: 'flex',
                   justifyContent: 'space-between',
                   alignItems: 'center',
-                  background: '#fafafa',
+                  background: '#171b23',
                 }}
               >
                 <div>
                   <h3 style={{ margin: 0, fontSize: 18, fontWeight: 800 }}>
                     {form.id ? `Edit Product: ${form.name}` : 'Create New Product'}
                   </h3>
-                  <span style={{ fontSize: 12.5, color: '#64748b' }}>
+                  <span style={{ fontSize: 12.5, color: '#a8adb4' }}>
                     Configure pricing, specifications, and instant Supabase catalog synchronization
                   </span>
                 </div>
                 <button
                   onClick={() => setShowModal(false)}
-                  style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#64748b' }}
+                  style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#a8adb4' }}
                 >
                   <X size={20} />
                 </button>
@@ -490,7 +490,7 @@ export default function AdminProducts() {
               {/* Modal Body with Live Preview */}
               <form onSubmit={handleSubmit} style={{ overflowY: 'auto', padding: '24px', flex: 1 }}>
                 {error && (
-                  <div style={{ background: '#fee2e2', color: '#dc2626', padding: '10px 14px', borderRadius: 8, marginBottom: 16, fontSize: 13 }}>
+                  <div style={{ background: 'rgba(220,38,38,0.12)', color: '#dc2626', padding: '10px 14px', borderRadius: 8, marginBottom: 16, fontSize: 13 }}>
                     {error}
                   </div>
                 )}
@@ -672,44 +672,44 @@ export default function AdminProducts() {
 
                   {/* Right Live Preview Column */}
                   <div>
-                    <div style={{ fontSize: 12, fontWeight: 750, color: '#64748b', textTransform: 'uppercase', marginBottom: 12, letterSpacing: '0.04em' }}>
+                    <div style={{ fontSize: 12, fontWeight: 750, color: '#a8adb4', textTransform: 'uppercase', marginBottom: 12, letterSpacing: '0.04em' }}>
                       Live Storefront Card Preview
                     </div>
 
                     <div
                       style={{
-                        background: '#ffffff',
-                        border: '1px solid #e2e8f0',
+                        background: '#171b23',
+                        border: '1px solid var(--color-border)',
                         borderRadius: 16,
                         padding: 16,
-                        boxShadow: '0 4px 16px rgba(0,0,0,0.06)',
+                        boxShadow: '0 4px 16px rgba(0,0,0,0.4)',
                       }}
                     >
-                      <div style={{ height: 180, background: '#f8fafc', borderRadius: 12, overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <div style={{ height: 180, background: '#12151b', borderRadius: 12, overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                         {form.image_url ? (
                           <img src={form.image_url} alt="" style={{ maxHeight: '100%', objectFit: 'contain' }} />
                         ) : (
-                          <Package size={40} style={{ color: '#cbd5e1' }} />
+                          <Package size={40} style={{ color: '#454a56' }} />
                         )}
                       </div>
 
                       <div style={{ marginTop: 14 }}>
                         {form.featured && (
-                          <span style={{ fontSize: 10, fontWeight: 750, background: 'rgba(200,16,46,0.1)', color: 'var(--color-brand)', padding: '2px 8px', borderRadius: 100 }}>
+                          <span style={{ fontSize: 10, fontWeight: 750, background: 'rgba(200,16,46,0.15)', color: 'var(--color-brand)', padding: '2px 8px', borderRadius: 100 }}>
                             FEATURED
                           </span>
                         )}
                         <h4 style={{ margin: '6px 0 4px', fontSize: 15, fontWeight: 750 }}>
                           {form.name || 'Your Product Name'}
                         </h4>
-                        <p style={{ fontSize: 12.5, color: '#64748b', margin: '0 0 12px', lineHeight: 1.4 }}>
+                        <p style={{ fontSize: 12.5, color: '#a8adb4', margin: '0 0 12px', lineHeight: 1.4 }}>
                           {form.short_desc || 'Short compound summary will appear here on customer cards.'}
                         </p>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                           <span style={{ fontSize: 18, fontWeight: 800, color: 'var(--color-ink)' }}>
                             ${Number(form.price || 0).toFixed(2)}
                           </span>
-                          <span style={{ fontSize: 11.5, color: form.stock > 0 ? '#059669' : '#dc2626', fontWeight: 650 }}>
+                          <span style={{ fontSize: 11.5, color: form.stock > 0 ? '#34d399' : '#dc2626', fontWeight: 650 }}>
                             {form.stock > 0 ? `${form.stock} in stock` : 'Out of stock'}
                           </span>
                         </div>

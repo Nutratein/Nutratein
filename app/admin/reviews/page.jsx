@@ -250,7 +250,7 @@ export default function AdminReviews() {
           <div style={{ padding: '48px 20px', textAlign: 'center' }}>
             <AlertCircle size={36} style={{ color: '#94a3b8', margin: '0 auto 12px' }} />
             <h4 style={{ margin: '0 0 6px', color: 'var(--color-ink)' }}>No Reviews Found</h4>
-            <p style={{ fontSize: 13, color: '#64748b', margin: 0 }}>
+            <p style={{ fontSize: 13, color: '#a8adb4', margin: 0 }}>
               {searchQuery || filterStatus !== 'all'
                 ? 'No reviews match your filter criteria.'
                 : 'All product reviews are currently set to 0. When customers submit a review on a product page, it will appear here for your approval!'}
@@ -266,7 +266,7 @@ export default function AdminReviews() {
                 animate={{ opacity: 1 }}
                 style={{
                   padding: '16px',
-                  borderBottom: '1px solid #f1f5f9',
+                  borderBottom: '1px solid rgba(255,255,255,0.08)',
                   display: 'flex',
                   justifyContent: 'space-between',
                   alignItems: 'flex-start',
@@ -299,13 +299,13 @@ export default function AdminReviews() {
                         <Star
                           key={s}
                           size={13}
-                          fill={s <= r.rating ? '#dc2626' : '#e2e8f0'}
-                          stroke={s <= r.rating ? '#dc2626' : '#cbd5e1'}
+                          fill={s <= r.rating ? '#dc2626' : '#2a2e37'}
+                          stroke={s <= r.rating ? '#dc2626' : '#454a56'}
                         />
                       ))}
                     </div>
                     <span style={{ fontSize: 12, fontWeight: 700 }}>{r.rating}/5</span>
-                    <span style={{ fontSize: 12, color: '#64748b' }}>
+                    <span style={{ fontSize: 12, color: '#a8adb4' }}>
                       on <strong>{r.product_name || 'Product'}</strong>
                     </span>
                   </div>

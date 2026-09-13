@@ -81,8 +81,8 @@ export default function CartPage() {
     return (
       <div className="modern-page-wrapper" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '60vh' }}>
         <div style={{ textAlign: 'center' }}>
-          <div style={{ width: 44, height: 44, border: '3px solid #e5e7eb', borderTopColor: 'var(--color-brand, #c8102e)', borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto 16px' }} />
-          <p style={{ color: '#6b7280', fontSize: 14, fontWeight: 600 }}>Loading research cart...</p>
+          <div style={{ width: 44, height: 44, border: '3px solid rgba(255,255,255,0.15)', borderTopColor: 'var(--color-brand, #c8102e)', borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto 16px' }} />
+          <p style={{ color: '#a8adb4', fontSize: 14, fontWeight: 600 }}>Loading research cart...</p>
         </div>
       </div>
     );
@@ -115,8 +115,8 @@ export default function CartPage() {
             </Link>
 
             {/* Popular quick-add suggestions */}
-            <div style={{ borderTop: '1px solid #f3f4f6', paddingTop: 28, textAlign: 'left' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 15, fontWeight: 700, color: '#1f2937', marginBottom: 16 }}>
+            <div style={{ borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: 28, textAlign: 'left' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 15, fontWeight: 700, color: '#f1f5f9', marginBottom: 16 }}>
                 <Sparkles size={16} className="text-brand" />
                 <span>Popular Research Compounds</span>
               </div>
@@ -125,12 +125,12 @@ export default function CartPage() {
                 {PRODUCTS.slice(0, 3).map((product) => (
                   <div 
                     key={product.id} 
-                    style={{ border: '1px solid #e5e7eb', borderRadius: 12, padding: 14, background: '#fafafa', display: 'flex', flexDirection: 'column' }}
+                    style={{ border: '1px solid rgba(255,255,255,0.1)', borderRadius: 12, padding: 14, background: '#171b23', display: 'flex', flexDirection: 'column' }}
                   >
-                    <div style={{ height: 100, background: '#ffffff', borderRadius: 8, padding: 6, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 10 }}>
+                    <div style={{ height: 100, background: '#12151b', borderRadius: 8, padding: 6, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 10 }}>
                       <img src={product.image_url} alt={product.name} style={{ maxHeight: '100%', objectFit: 'contain' }} />
                     </div>
-                    <Link href={`/shop/${product.slug}`} style={{ fontSize: 13.5, fontWeight: 700, color: '#111827', marginBottom: 6 }}>
+                    <Link href={`/shop/${product.slug}`} style={{ fontSize: 13.5, fontWeight: 700, color: '#f1f5f9', marginBottom: 6 }}>
                       {product.name}
                     </Link>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 'auto', paddingTop: 6 }}>
@@ -180,9 +180,9 @@ export default function CartPage() {
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: 6,
-                background: '#f3f4f6',
-                color: '#4b5563',
-                border: '1px solid #e5e7eb',
+                background: '#171b23',
+                color: '#a8adb4',
+                border: '1px solid rgba(255,255,255,0.1)',
                 padding: '8px 14px',
                 borderRadius: 8,
                 fontSize: 13,
@@ -331,7 +331,7 @@ export default function CartPage() {
             </div>
 
             {/* Special Instructions Note */}
-            <div style={{ background: '#ffffff', border: '1px solid #e5e7eb', borderRadius: 12, marginBottom: 20, overflow: 'hidden' }}>
+            <div style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: 12, marginBottom: 20, overflow: 'hidden' }}>
               <button 
                 type="button" 
                 onClick={() => setShowNoteField(!showNoteField)}
@@ -345,12 +345,12 @@ export default function CartPage() {
                   border: 'none',
                   fontSize: 13.5,
                   fontWeight: 600,
-                  color: '#374151',
+                  color: '#a8adb4',
                   cursor: 'pointer'
                 }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <FileText size={16} color="#6b7280" />
+                  <FileText size={16} color="#a8adb4" />
                   <span>Special Laboratory Delivery Instructions (Optional)</span>
                 </div>
                 <span style={{ fontSize: 16 }}>{showNoteField ? '−' : '+'}</span>
@@ -364,7 +364,7 @@ export default function CartPage() {
                     onChange={(e) => setOrderNote(e.target.value)}
                     style={{
                       width: '100%',
-                      border: '1.5px solid #d1d5db',
+                      border: '1.5px solid rgba(255,255,255,0.15)',
                       borderRadius: 8,
                       padding: '10px 12px',
                       fontSize: 13,
@@ -379,10 +379,10 @@ export default function CartPage() {
 
             {/* Recommended Cross-Sells (Horizontal Layout: Left Content/Btn, Right Image) */}
             {recommendedProducts.length > 0 && (
-              <div style={{ background: '#ffffff', border: '1px solid #e5e7eb', borderRadius: 14, padding: 20, marginBottom: 20 }}>
+              <div style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: 14, padding: 20, marginBottom: 20 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
                   <Sparkles size={16} className="text-brand" />
-                  <h3 style={{ fontSize: 15, fontWeight: 700, margin: 0, color: '#111827' }}>Frequently Added With Your Order</h3>
+                  <h3 style={{ fontSize: 15, fontWeight: 700, margin: 0, color: '#f1f5f9' }}>Frequently Added With Your Order</h3>
                 </div>
 
                 <div className="cross-sell-horizontal-grid">
@@ -441,7 +441,7 @@ export default function CartPage() {
                     <button 
                       type="button" 
                       onClick={handleRemovePromo} 
-                      style={{ background: 'transparent', border: 'none', color: '#047857', fontSize: 15, fontWeight: 700, cursor: 'pointer' }}
+                      style={{ background: 'transparent', border: 'none', color: '#34d399', fontSize: 15, fontWeight: 700, cursor: 'pointer' }}
                       title="Remove coupon"
                     >
                       ✕
@@ -518,7 +518,7 @@ export default function CartPage() {
               </Link>
 
               {!user && (
-                <div style={{ fontSize: 12, color: '#6b7280', textAlign: 'center', marginTop: 10 }}>
+                <div style={{ fontSize: 12, color: '#a8adb4', textAlign: 'center', marginTop: 10 }}>
                   Already a client?{' '}
                   <Link href="/login?redirect=/cart" style={{ color: 'var(--color-brand, #c8102e)', fontWeight: 600 }}>
                     Sign in
@@ -530,7 +530,7 @@ export default function CartPage() {
               <Link 
                 href="/shop" 
                 className="btn btn-outline" 
-                style={{ width: '100%', marginTop: 12, borderRadius: 12, fontSize: 13.5, borderColor: '#d1d5db', boxSizing: 'border-box' }}
+                style={{ width: '100%', marginTop: 12, borderRadius: 12, fontSize: 13.5, borderColor: 'rgba(255,255,255,0.15)', boxSizing: 'border-box' }}
               >
                 ← Continue Shopping
               </Link>

@@ -76,6 +76,7 @@ export default function CartDrawer({ onClose }) {
     <AnimatePresence>
       {/* Backdrop with modern blur */}
       <motion.div
+        key="cart-drawer-backdrop"
         className="cart-drawer-backdrop"
         onClick={onClose}
         initial={{ opacity: 0 }}
@@ -86,6 +87,7 @@ export default function CartDrawer({ onClose }) {
 
       {/* Drawer Container */}
       <motion.aside
+        key="cart-drawer-panel"
         className="cart-drawer-panel"
         initial={{ x: '100%' }}
         animate={{ x: 0 }}

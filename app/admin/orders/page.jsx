@@ -252,7 +252,7 @@ export default function AdminOrders() {
           <div style={{ padding: '48px 20px', textAlign: 'center' }}>
             <AlertCircle size={36} style={{ color: '#94a3b8', margin: '0 auto 12px' }} />
             <h4 style={{ margin: '0 0 6px', color: 'var(--color-ink)' }}>No Orders Matching</h4>
-            <p style={{ fontSize: 13, color: '#64748b', margin: 0 }}>
+            <p style={{ fontSize: 13, color: '#a8adb4', margin: 0 }}>
               Try adjusting your search query or filter selection.
             </p>
           </div>
@@ -305,13 +305,13 @@ export default function AdminOrders() {
                                 width: 32,
                                 height: 32,
                                 borderRadius: '50%',
-                                background: '#f1f5f9',
+                                background: '#232830',
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'center',
                                 fontWeight: 700,
                                 fontSize: 12,
-                                color: '#475569',
+                                color: '#a8adb4',
                               }}
                             >
                               {(o.full_name || o.email || 'C')[0].toUpperCase()}
@@ -323,7 +323,7 @@ export default function AdminOrders() {
                           </div>
                         </td>
 
-                        <td style={{ fontSize: 13, color: '#64748b' }}>{dateStr}</td>
+                        <td style={{ fontSize: 13, color: '#a8adb4' }}>{dateStr}</td>
 
                         <td>
                           <strong style={{ color: 'var(--color-ink)', fontSize: 14 }}>
@@ -341,7 +341,7 @@ export default function AdminOrders() {
                               fontWeight: 650,
                               borderRadius: 8,
                               border: '1.5px solid var(--color-border)',
-                              background: '#ffffff',
+                              background: '#171b23',
                               cursor: 'pointer',
                               outline: 'none',
                             }}
@@ -369,10 +369,10 @@ export default function AdminOrders() {
                       {/* Expanded Items & Address Accordion */}
                       {isExp && (
                         <tr>
-                          <td colSpan={6} style={{ background: '#f8fafc', padding: '18px 24px' }}>
+                          <td colSpan={6} style={{ background: '#171b23', padding: '18px 24px' }}>
                             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 20 }}>
                               <div>
-                                <h4 style={{ margin: '0 0 10px', fontSize: 13, textTransform: 'uppercase', color: '#64748b', letterSpacing: '0.04em' }}>
+                                <h4 style={{ margin: '0 0 10px', fontSize: 13, textTransform: 'uppercase', color: '#a8adb4', letterSpacing: '0.04em' }}>
                                   Line Items ({o.order_items?.length || 0})
                                 </h4>
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -387,10 +387,10 @@ export default function AdminOrders() {
                                           justifyContent: 'space-between',
                                           gap: 12,
                                           fontSize: 13.5,
-                                          background: '#ffffff',
+                                          background: '#12151b',
                                           padding: '8px 12px',
                                           borderRadius: 8,
-                                          border: '1px solid #e2e8f0',
+                                          border: '1px solid var(--color-border)',
                                           flexWrap: 'wrap',
                                         }}
                                       >
@@ -400,8 +400,8 @@ export default function AdminOrders() {
                                               width: 38,
                                               height: 38,
                                               borderRadius: 6,
-                                              background: '#f8fafc',
-                                              border: '1px solid #e2e8f0',
+                                              background: '#171b23',
+                                              border: '1px solid var(--color-border)',
                                               display: 'flex',
                                               alignItems: 'center',
                                               justifyContent: 'center',
@@ -418,15 +418,15 @@ export default function AdminOrders() {
                                             />
                                           </div>
                                           <div style={{ minWidth: 0 }}>
-                                            <div style={{ fontWeight: 600, color: '#0f172a' }}>
+                                            <div style={{ fontWeight: 600, color: '#f1f5f9' }}>
                                               {item.product_name}
                                             </div>
-                                            <div style={{ fontSize: 12, color: '#64748b' }}>
+                                            <div style={{ fontSize: 12, color: '#a8adb4' }}>
                                               Qty: {item.quantity} &bull; ${Number(item.unit_price || 0).toFixed(2)} each
                                             </div>
                                           </div>
                                         </div>
-                                        <span style={{ fontWeight: 700, color: '#0f172a' }}>
+                                        <span style={{ fontWeight: 700, color: '#f1f5f9' }}>
                                           ${Number(item.line_total).toFixed(2)}
                                         </span>
                                       </div>
@@ -436,10 +436,10 @@ export default function AdminOrders() {
                               </div>
 
                               <div>
-                                <h4 style={{ margin: '0 0 10px', fontSize: 13, textTransform: 'uppercase', color: '#64748b', letterSpacing: '0.04em' }}>
+                                <h4 style={{ margin: '0 0 10px', fontSize: 13, textTransform: 'uppercase', color: '#a8adb4', letterSpacing: '0.04em' }}>
                                   Shipping Address &amp; Contact
                                 </h4>
-                                <div style={{ background: '#ffffff', padding: '10px 14px', borderRadius: 8, border: '1px solid #f1f5f9', fontSize: 13, lineHeight: 1.6 }}>
+                                <div style={{ background: '#12151b', padding: '10px 14px', borderRadius: 8, border: '1px solid var(--color-border)', fontSize: 13, lineHeight: 1.6 }}>
                                   {o.shipping_address ? (
                                     <>
                                       <div>{o.shipping_address.address1}</div>

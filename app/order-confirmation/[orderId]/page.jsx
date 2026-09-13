@@ -123,14 +123,14 @@ export default function OrderConfirmation() {
       <div className="conf-page-wrapper">
         <div className="conf-container" style={{ maxWidth: 650, textAlign: 'center', paddingTop: 80 }}>
           <div className="conf-icon-wrapper">
-            <div className="conf-icon-bg" style={{ background: '#f1f5f9', color: '#94a3b8' }}>
+            <div className="conf-icon-bg" style={{ background: 'var(--color-surface)', color: '#94a3b8' }}>
               <Clock size={32} className="animate-spin" />
             </div>
           </div>
-          <h2 style={{ fontSize: 24, fontWeight: 700, color: '#0f172a', marginBottom: 8 }}>
+          <h2 style={{ fontSize: 24, fontWeight: 700, color: 'var(--color-ink)', marginBottom: 8 }}>
             Retrieving Order Confirmation...
           </h2>
-          <p style={{ fontSize: 14, color: '#64748b' }}>
+          <p style={{ fontSize: 14, color: 'var(--color-ink-soft)' }}>
             Synchronizing high-security laboratory dispatch logs. Please wait a moment.
           </p>
         </div>
@@ -206,7 +206,7 @@ export default function OrderConfirmation() {
           <div className="conf-pill-bar">
             <div className="conf-ref-pill">
               <span>Order Reference:</span>
-              <strong style={{ color: '#0f172a', letterSpacing: '0.04em' }}>{refCode}</strong>
+              <strong style={{ color: 'var(--color-ink)', letterSpacing: '0.04em' }}>{refCode}</strong>
               <button 
                 type="button" 
                 onClick={handleCopy}
@@ -222,7 +222,7 @@ export default function OrderConfirmation() {
               type="button" 
               onClick={handlePrint} 
               className="conf-copy-btn" 
-              style={{ padding: '7px 14px', fontSize: 13, background: '#ffffff' }}
+              style={{ padding: '7px 14px', fontSize: 13, background: 'var(--color-surface)' }}
             >
               <Printer size={14} />
               <span>Print Invoice</span>
@@ -302,7 +302,7 @@ export default function OrderConfirmation() {
                   <ShoppingBag size={17} color="#c8102e" />
                   <span>Items Ordered ({items.length > 0 ? items.reduce((a, b) => a + (b.quantity || 1), 0) : 'Confirmed'})</span>
                 </h3>
-                <span style={{ fontSize: 13, color: '#64748b' }}>HPLC Purity ≥99%</span>
+                <span style={{ fontSize: 13, color: 'var(--color-ink-soft)' }}>HPLC Purity ≥99%</span>
               </div>
 
               {items.length > 0 ? (
@@ -312,7 +312,7 @@ export default function OrderConfirmation() {
 
                     return (
                       <div key={item.id || item.product_name} className="conf-item-row">
-                        <div className="conf-item-thumb" style={{ overflow: 'hidden', padding: 2, background: '#ffffff' }}>
+                        <div className="conf-item-thumb" style={{ overflow: 'hidden', padding: 2, background: '#171b23' }}>
                           <img 
                             src={itemImg} 
                             alt={item.product_name}
@@ -335,13 +335,13 @@ export default function OrderConfirmation() {
                   })}
                 </div>
               ) : (
-                <div style={{ padding: '16px 0', color: '#64748b', fontSize: 14 }}>
+                <div style={{ padding: '16px 0', color: 'var(--color-ink-soft)', fontSize: 14 }}>
                   Order line items registered. Full batch manifests are attached to your invoice email.
                 </div>
               )}
 
               {/* Price Breakdown */}
-              <div style={{ marginTop: 20, paddingTop: 16, borderTop: '1.5px solid #f1f5f9' }}>
+              <div style={{ marginTop: 20, paddingTop: 16, borderTop: '1.5px solid var(--color-border)' }}>
                 <div className="conf-breakdown-row">
                   <span>Subtotal</span>
                   <span>${(itemsSubtotal > 0 ? itemsSubtotal : totalAmount).toFixed(2)}</span>
@@ -351,7 +351,7 @@ export default function OrderConfirmation() {
                   <span>Shipping ({shippingMethod === 'cold-chain' ? 'Cold-Chain Protected' : 'Express Tracked'})</span>
                   <span>
                     {shippingCost === 0 ? (
-                      <span style={{ color: '#059669', fontWeight: 700, background: '#ecfdf5', padding: '2px 8px', borderRadius: 4, fontSize: 12 }}>
+                      <span style={{ color: '#34d399', fontWeight: 700, background: 'rgba(16,185,129,0.12)', padding: '2px 8px', borderRadius: 4, fontSize: 12 }}>
                         FREE
                       </span>
                     ) : (
@@ -373,14 +373,14 @@ export default function OrderConfirmation() {
             </div>
 
             {/* Quality & Research Assurance Card */}
-            <div className="conf-card" style={{ background: 'linear-gradient(180deg, #ffffff 0%, #fafafa 100%)' }}>
+            <div className="conf-card" style={{ background: 'linear-gradient(180deg, #12151b 0%, #0d1117 100%)' }}>
               <div className="conf-card-head" style={{ borderBottom: 'none', marginBottom: 8, paddingBottom: 0 }}>
                 <h3 className="conf-card-title">
                   <ShieldCheck size={18} color="#059669" />
                   <span>Laboratory Integrity Guarantee</span>
                 </h3>
               </div>
-              <p style={{ fontSize: 13, color: '#64748b', lineHeight: 1.6, margin: 0 }}>
+              <p style={{ fontSize: 13, color: 'var(--color-ink-soft)', lineHeight: 1.6, margin: 0 }}>
                 Every compound is packaged in sterile, temperature-buffered packaging with nitrogen flush where required. All analytical COAs (Certificates of Analysis) and mass spectrometry data are accessible with your batch number.
               </p>
             </div>
@@ -396,29 +396,29 @@ export default function OrderConfirmation() {
             <div className="conf-card" style={{ borderLeft: '4px solid #10b981' }}>
               <div className="conf-card-head">
                 <h3 className="conf-card-title">
-                  {paymentPref === 'wire' ? <Building size={18} color="#1e293b" /> : <CreditCard size={18} color="#1e293b" />}
+                  {paymentPref === 'wire' ? <Building size={18} color="#f1f5f9" /> : <CreditCard size={18} color="#f1f5f9" />}
                   <span>Payment Preference</span>
                 </h3>
-                <span style={{ fontSize: 11.5, fontWeight: 700, color: '#059669', background: '#ecfdf5', padding: '3px 8px', borderRadius: 6 }}>
+                <span style={{ fontSize: 11.5, fontWeight: 700, color: '#34d399', background: 'rgba(16,185,129,0.12)', padding: '3px 8px', borderRadius: 6 }}>
                   ACTION INITIATED
                 </span>
               </div>
 
               {paymentPref === 'wire' ? (
                 <div>
-                  <p style={{ fontSize: 13, color: '#334155', lineHeight: 1.5, margin: '0 0 12px' }}>
+                  <p style={{ fontSize: 13, color: 'var(--color-ink-soft)', lineHeight: 1.5, margin: '0 0 12px' }}>
                     Institutional Bank Wire, ACH, or Zelle instructions have been issued to your email. Please reference your order number <strong>{refCode}</strong> during the wire transfer.
                   </p>
-                  <div style={{ background: '#f8fafc', padding: '10px 12px', borderRadius: 8, fontSize: 12, color: '#475569', border: '1px solid #e2e8f0' }}>
+                  <div style={{ background: '#171b23', padding: '10px 12px', borderRadius: 8, fontSize: 12, color: 'var(--color-ink-soft)', border: '1px solid var(--color-border)' }}>
                     ⚡ <strong>Fast Clear:</strong> Transfers initiated within business hours typically clear and dispatch within 24 hours.
                   </div>
                 </div>
               ) : (
                 <div>
-                  <p style={{ fontSize: 13, color: '#334155', lineHeight: 1.5, margin: '0 0 12px' }}>
+                  <p style={{ fontSize: 13, color: 'var(--color-ink-soft)', lineHeight: 1.5, margin: '0 0 12px' }}>
                     A discreet, encrypted card payment invoice link has been generated and dispatched to <strong>{order?.email || 'your email'}</strong>.
                   </p>
-                  <div style={{ background: '#f8fafc', padding: '10px 12px', borderRadius: 8, fontSize: 12, color: '#475569', border: '1px solid #e2e8f0' }}>
+                  <div style={{ background: '#171b23', padding: '10px 12px', borderRadius: 8, fontSize: 12, color: 'var(--color-ink-soft)', border: '1px solid var(--color-border)' }}>
                     🔒 <strong>Discreet Statement:</strong> The descriptor on your statement will read securely without any research designations.
                   </div>
                 </div>
@@ -438,12 +438,12 @@ export default function OrderConfirmation() {
                 <div className="conf-info-label">Recipient</div>
                 <div className="conf-info-val">{order?.full_name || 'Valued Client'}</div>
                 {order?.email && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: '#64748b', marginTop: 3 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: 'var(--color-ink-soft)', marginTop: 3 }}>
                     <Mail size={13} /> {order.email}
                   </div>
                 )}
                 {order?.phone && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: '#64748b', marginTop: 2 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: 'var(--color-ink-soft)', marginTop: 2 }}>
                     <Phone size={13} /> {order.phone}
                   </div>
                 )}
@@ -462,9 +462,9 @@ export default function OrderConfirmation() {
               </div>
 
               {order?.notes && (
-                <div className="conf-info-group" style={{ marginTop: 14, paddingTop: 12, borderTop: '1px solid #f1f5f9' }}>
+                <div className="conf-info-group" style={{ marginTop: 14, paddingTop: 12, borderTop: '1px solid var(--color-border)' }}>
                   <div className="conf-info-label">Order Notes</div>
-                  <div style={{ fontSize: 12.5, color: '#64748b', background: '#f8fafc', padding: '8px 10px', borderRadius: 6, fontStyle: 'italic' }}>
+                  <div style={{ fontSize: 12.5, color: 'var(--color-ink-soft)', background: '#171b23', padding: '8px 10px', borderRadius: 6, fontStyle: 'italic' }}>
                     "{order.notes}"
                   </div>
                 </div>
@@ -486,7 +486,7 @@ export default function OrderConfirmation() {
               <div style={{ textAlign: 'center', marginTop: 8 }}>
                 <Link 
                   href="/contact-us" 
-                  style={{ fontSize: 12.5, color: '#64748b', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 4 }}
+                  style={{ fontSize: 12.5, color: 'var(--color-ink-soft)', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 4 }}
                 >
                   <HelpCircle size={13} /> Need assistance with this order? Contact Support
                 </Link>

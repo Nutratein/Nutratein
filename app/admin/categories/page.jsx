@@ -216,7 +216,7 @@ export default function AdminCategories() {
         <div className="admin-card-section-header">
           <div>
             <h3>All Classifications ({filtered.length})</h3>
-            <span style={{ fontSize: 12.5, color: '#64748b' }}>
+            <span style={{ fontSize: 12.5, color: '#a8adb4' }}>
               Categories linked to store catalog
             </span>
           </div>
@@ -244,7 +244,7 @@ export default function AdminCategories() {
           <div style={{ padding: '48px 20px', textAlign: 'center' }}>
             <FolderOpen size={36} style={{ color: '#94a3b8', margin: '0 auto 12px' }} />
             <h4 style={{ margin: '0 0 6px', color: 'var(--color-ink)' }}>No Categories Found</h4>
-            <p style={{ fontSize: 13, color: '#64748b', margin: '0 0 16px' }}>
+            <p style={{ fontSize: 13, color: '#a8adb4', margin: '0 0 16px' }}>
               Create a category to group your research compounds.
             </p>
             <button onClick={handleStartNew} className="account-btn-primary">
@@ -286,12 +286,12 @@ export default function AdminCategories() {
                     </td>
 
                     <td>
-                      <code style={{ fontSize: 12.5, color: '#475569', background: '#f1f5f9', padding: '3px 8px', borderRadius: 6 }}>
+                      <code style={{ fontSize: 12.5, color: '#a8adb4', background: '#171b23', padding: '3px 8px', borderRadius: 6 }}>
                         /{c.slug}
                       </code>
                     </td>
 
-                    <td style={{ color: '#64748b', fontSize: 13, maxWidth: 300, whiteSpace: 'normal' }}>
+                    <td style={{ color: '#a8adb4', fontSize: 13, maxWidth: 300, whiteSpace: 'normal' }}>
                       {c.description || <span style={{ color: '#94a3b8' }}>— No description —</span>}
                     </td>
 
@@ -347,35 +347,35 @@ export default function AdminCategories() {
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
               style={{
-                background: '#ffffff',
+                background: 'var(--color-surface)',
                 borderRadius: 20,
                 maxWidth: 540,
                 width: '100%',
-                boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+                boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.55)',
                 overflow: 'hidden',
               }}
             >
               <div
                 style={{
                   padding: '20px 24px',
-                  borderBottom: '1px solid #e2e8f0',
+                  borderBottom: '1px solid var(--color-border)',
                   display: 'flex',
                   justifyContent: 'space-between',
                   alignItems: 'center',
-                  background: '#fafafa',
+                  background: '#171b23',
                 }}
               >
                 <div>
                   <h3 style={{ margin: 0, fontSize: 18, fontWeight: 800 }}>
                     {editingCat ? `Edit: ${editingCat.name}` : 'Create New Category'}
                   </h3>
-                  <span style={{ fontSize: 12.5, color: '#64748b' }}>
+                  <span style={{ fontSize: 12.5, color: '#a8adb4' }}>
                     Saves directly to Supabase categories table
                   </span>
                 </div>
                 <button
                   onClick={() => setShowDrawer(false)}
-                  style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#64748b' }}
+                  style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#a8adb4' }}
                 >
                   <X size={20} />
                 </button>
@@ -383,7 +383,7 @@ export default function AdminCategories() {
 
               <form onSubmit={handleSave} style={{ padding: '24px' }}>
                 {error && (
-                  <div style={{ background: '#fee2e2', color: '#dc2626', padding: '10px 14px', borderRadius: 8, marginBottom: 16, fontSize: 13 }}>
+                  <div style={{ background: 'rgba(220,38,38,0.12)', color: '#dc2626', padding: '10px 14px', borderRadius: 8, marginBottom: 16, fontSize: 13 }}>
                     {error}
                   </div>
                 )}
@@ -407,10 +407,10 @@ export default function AdminCategories() {
                   </label>
                   <div
                     style={{
-                      background: '#f8fafc',
+                      background: '#171b23',
                       padding: '8px 12px',
                       borderRadius: 8,
-                      border: '1px solid #e2e8f0',
+                      border: '1px solid var(--color-border)',
                       fontSize: 13,
                       fontFamily: 'monospace',
                       color: 'var(--color-brand)',

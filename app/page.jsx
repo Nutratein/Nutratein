@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '@/lib/supabaseClient';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Check } from 'lucide-react';
 import { getSiteContent } from '@/lib/siteContent';
 import ProductCard from '@/components/ProductCard.jsx';
 import Reveal from '@/components/Reveal.jsx';
@@ -187,6 +187,27 @@ const DEFAULT_CONTENT = {
   ],
   promo: { enabled: true, text: 'Free shipping on all orders over $150', link_label: 'Shop Now', link: '/shop' },
   newsletter: { title: 'Stay in the loop', subtitle: 'Get restock alerts, new COAs, and research notes — no spam.' },
+  membership: {
+    enabled: true,
+    eyebrow: 'ELITE RESEARCH ACCESS',
+    title: 'What Is The',
+    title_highlight: 'Apex Vault',
+    title_after: 'Membership?',
+    plan_label: 'APEX VAULT MEMBERSHIP',
+    plan_duration: 'ONE RESEARCHER • ONE YEAR',
+    benefits_heading: 'EXCLUSIVE BENEFITS',
+    benefits: [
+      { title: 'Priority Batch Reservations', text: 'First access to every new synthesis run before it goes live to the public.' },
+      { title: 'Private Research Line', text: 'A direct line to our lab team for sourcing, dosing protocols, and COA questions.' },
+      { title: 'Custom Synthesis Credits', text: 'Annual credit toward bespoke peptide sequences synthesized to your exact spec.' },
+      { title: 'Concierge Cold-Chain Shipping', text: 'Guaranteed next-day dispatch with white-glove, discreet packaging.' },
+    ],
+    price: '$2,497.00',
+    price_note: 'USD / year — billed annually. Limited seats available.',
+    cta_label: 'Unlock The Vault',
+    cta_link: '/contact-us',
+    closing_text: 'Built for institutions and independent researchers who need more than a storefront — a dedicated supply partner.',
+  },
 };
 
 const FALLBACK_FEATURED = [
@@ -266,7 +287,7 @@ export default function Home() {
     return () => { active = false; };
   }, []);
 
-  const { hero, trust_badges, stats, features, testimonials, promo, newsletter } = content;
+  const { hero, trust_badges, stats, features, testimonials, promo, newsletter, membership } = content;
 
   function handleSubscribe(e) {
     e.preventDefault();
@@ -807,6 +828,75 @@ export default function Home() {
               </p>
             </Reveal>
             <TestimonialCarousel testimonials={testimonials} />
+          </div>
+        </section>
+      )}
+
+      {membership?.enabled !== false && (
+        <section className="membership-section">
+          <div className="container">
+            <Reveal as="div" className="membership-card">
+              <div className="membership-inner">
+                <div className="membership-eyebrow-wrap">
+                  <span className="membership-eyebrow-line" />
+                  <span className="membership-eyebrow-text">
+                    {membership.eyebrow || 'ELITE RESEARCH ACCESS'}
+                  </span>
+                  <span className="membership-eyebrow-line" />
+                </div>
+
+                <h2 className="membership-title">
+                  {membership.title || 'What Is The'}{' '}
+                  <span className="membership-title-highlight">
+                    {membership.title_highlight || 'Apex Vault'}
+                  </span>{' '}
+                  {membership.title_after || 'Membership?'}
+                </h2>
+
+                <div className="membership-plan-row">
+                  <span>{membership.plan_label || 'APEX VAULT MEMBERSHIP'}</span>
+                  <span className="membership-plan-dot" />
+                  <span>{membership.plan_duration || 'ONE RESEARCHER • ONE YEAR'}</span>
+                </div>
+
+                <div className="membership-benefits-tag">
+                  <span className="membership-tag-line" />
+                  <span>{membership.benefits_heading || 'EXCLUSIVE BENEFITS'}</span>
+                  <span className="membership-tag-line" />
+                </div>
+
+                <div className="membership-benefits-grid">
+                  {(membership.benefits || []).map((b, idx) => (
+                    <div className="membership-benefit-item" key={idx}>
+                      <span className="membership-check-badge">
+                        <Check size={13} strokeWidth={3} />
+                      </span>
+                      <div>
+                        <h4>{b.title}</h4>
+                        <p>{b.text}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="membership-price-box">
+                  <span className="membership-price">{membership.price || '$2,497.00'}</span>
+                  <span className="membership-price-note">
+                    {membership.price_note || 'USD / year — billed annually. Limited seats available.'}
+                  </span>
+                </div>
+
+                <Link href={membership.cta_link || '/contact-us'} className="membership-cta-btn">
+                  <span className="membership-cta-tick" />
+                  <span>{membership.cta_label || 'Unlock The Vault'}</span>
+                  <span className="membership-cta-tick" />
+                </Link>
+
+                {membership.closing_text && (
+                  <p className="membership-closing-text">{membership.closing_text}</p>
+                )}
+              </div>
+            </Reveal>
           </div>
         </section>
       )}

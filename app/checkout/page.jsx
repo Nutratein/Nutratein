@@ -157,7 +157,7 @@ function CheckoutContent() {
               <h1 className="modern-main-heading">Secure Checkout</h1>
               <p className="modern-subheading">Complete your delivery destination and confirm your order.</p>
             </div>
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 13, fontWeight: 700, color: '#047857', background: '#ecfdf5', padding: '6px 14px', borderRadius: 8, border: '1px solid #a7f3d0' }}>
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 13, fontWeight: 700, color: '#34d399', background: 'rgba(16,185,129,0.12)', padding: '6px 14px', borderRadius: 8, border: '1px solid rgba(16,185,129,0.35)' }}>
               <Lock size={14} /> 256-Bit SSL Encrypted
             </div>
           </div>
@@ -188,7 +188,7 @@ function CheckoutContent() {
           {/* Left Column: Form Cards */}
           <div>
             {error && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: '#fef2f2', border: '1px solid #fecaca', color: '#991b1b', padding: '12px 16px', borderRadius: 10, marginBottom: 20, fontSize: 14 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: 'rgba(220,38,38,0.12)', border: '1px solid rgba(220,38,38,0.35)', color: '#f87171', padding: '12px 16px', borderRadius: 10, marginBottom: 20, fontSize: 14 }}>
                 <AlertCircle size={18} style={{ flexShrink: 0 }} />
                 <span>{error}</span>
               </div>
@@ -357,7 +357,7 @@ function CheckoutContent() {
                       <span>2–3 Business Days • Discreet Thermal Pouch</span>
                     </div>
                     <div className="shipping-option-price">
-                      {isFreeShipping ? <span style={{ color: '#047857' }}>FREE</span> : '$9.99'}
+                      {isFreeShipping ? <span style={{ color: '#34d399' }}>FREE</span> : '$9.99'}
                     </div>
                   </div>
 
@@ -390,28 +390,28 @@ function CheckoutContent() {
                     onClick={() => setPaymentMethod('card')}
                   >
                     <div className="shipping-option-radio" />
-                    <CreditCard size={20} color="#1f2937" />
+                    <CreditCard size={20} color="#f1f5f9" />
                     <div>
-                      <strong style={{ fontSize: 14, display: 'block', color: '#111827' }}>Credit / Debit Card</strong>
-                      <span style={{ fontSize: 12, color: '#6b7280' }}>Discreet invoice link provided immediately on next screen</span>
+                      <strong style={{ fontSize: 14, display: 'block', color: '#f1f5f9' }}>Credit / Debit Card</strong>
+                      <span style={{ fontSize: 12, color: '#a8adb4' }}>Discreet invoice link provided immediately on next screen</span>
                     </div>
                   </div>
 
 
-                  <div 
+                  <div
                     className={`payment-method-card ${paymentMethod === 'wire' ? 'selected' : ''}`}
                     onClick={() => setPaymentMethod('wire')}
                   >
                     <div className="shipping-option-radio" />
-                    <Building size={20} color="#1f2937" />
+                    <Building size={20} color="#f1f5f9" />
                     <div>
-                      <strong style={{ fontSize: 14, display: 'block', color: '#111827' }}>Institutional Bank Wire / ACH / Zelle</strong>
-                      <span style={{ fontSize: 12, color: '#6b7280' }}>Wire instructions will be issued on the confirmation page</span>
+                      <strong style={{ fontSize: 14, display: 'block', color: '#f1f5f9' }}>Institutional Bank Wire / ACH / Zelle</strong>
+                      <span style={{ fontSize: 12, color: '#a8adb4' }}>Wire instructions will be issued on the confirmation page</span>
                     </div>
                   </div>
                 </div>
 
-                <p style={{ fontSize: 12, color: '#6b7280', margin: 0, padding: '10px 12px', background: '#f9fafb', borderRadius: 8 }}>
+                <p style={{ fontSize: 12, color: '#a8adb4', margin: 0, padding: '10px 12px', background: '#171b23', borderRadius: 8 }}>
                   🔒 <strong>Discreet Billing Guarantee:</strong> No compound names or research designations appear on your statement.
                 </p>
               </div>
@@ -419,15 +419,15 @@ function CheckoutContent() {
               {/* Card 5: Optional Laboratory Delivery Notes */}
               <div className="checkout-form-card">
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-                  <FileText size={16} color="#6b7280" />
-                  <h3 style={{ fontSize: 15, fontWeight: 700, margin: 0, color: '#111827' }}>Order Notes (Optional)</h3>
+                  <FileText size={16} color="#a8adb4" />
+                  <h3 style={{ fontSize: 15, fontWeight: 700, margin: 0, color: '#f1f5f9' }}>Order Notes (Optional)</h3>
                 </div>
-                <textarea 
-                  rows={2} 
-                  value={form.notes} 
+                <textarea
+                  rows={2}
+                  value={form.notes}
                   onChange={update('notes')}
                   placeholder="e.g. Leave package at Building C security desk, gate passcode #1234..."
-                  style={{ width: '100%', border: '1.5px solid #d1d5db', borderRadius: 8, padding: '10px 12px', fontSize: 13, fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box' }}
+                  style={{ width: '100%', border: '1.5px solid rgba(255,255,255,0.15)', borderRadius: 8, padding: '10px 12px', fontSize: 13, fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box' }}
                 />
               </div>
 
@@ -500,7 +500,7 @@ function CheckoutContent() {
               <Link 
                 href="/cart" 
                 className="btn btn-outline" 
-                style={{ width: '100%', marginTop: 12, borderRadius: 12, fontSize: 13.5, borderColor: '#d1d5db', boxSizing: 'border-box' }}
+                style={{ width: '100%', marginTop: 12, borderRadius: 12, fontSize: 13.5, borderColor: 'rgba(255,255,255,0.15)', boxSizing: 'border-box' }}
               >
                 ← Return to Cart
               </Link>

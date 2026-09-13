@@ -112,7 +112,7 @@ function LoginForm() {
             <div className="auth-field">
               <div className="auth-field-row">
                 <label htmlFor="login-password">Password</label>
-                <Link href="/contact-us" className="auth-forgot-link">
+                <Link href="/forgot-password" className="auth-forgot-link">
                   Forgot password?
                 </Link>
               </div>
