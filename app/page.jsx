@@ -4,13 +4,14 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '@/lib/supabaseClient';
-import { ChevronLeft, ChevronRight, Check } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Gem } from 'lucide-react';
 import { getSiteContent } from '@/lib/siteContent';
 import ProductCard from '@/components/ProductCard.jsx';
 import Reveal from '@/components/Reveal.jsx';
 import Marquee from '@/components/Marquee.jsx';
 import AnimatedCounter from '@/components/AnimatedCounter.jsx';
 import TestimonialCarousel from '@/components/TestimonialCarousel.jsx';
+import MembershipCard from '@/components/MembershipCard.jsx';
 
 const gridVariants = {
   hidden: {},
@@ -281,7 +282,13 @@ export default function Home() {
       });
 
     getSiteContent('home', DEFAULT_CONTENT).then((value) => {
-      if (active && value) setContent({ ...DEFAULT_CONTENT, ...value });
+      if (active && value) {
+        setContent({
+          ...DEFAULT_CONTENT,
+          ...value,
+          membership: { ...DEFAULT_CONTENT.membership, ...(value?.membership || {}) },
+        });
+      }
     });
 
     return () => { active = false; };
@@ -316,7 +323,7 @@ export default function Home() {
               transition={{ duration: 0.5, delay: 0.1 }}
             >
               Peptides for <br className="hidden md:block"/>
-              <span className="text-brand">Revitalization &</span><br className="hidden md:block"/>
+              <span className="text-brand">Revitalization &amp;</span> <br className="hidden md:block"/>
               Health
             </motion.h1>
             
@@ -345,6 +352,12 @@ export default function Home() {
               <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}>
                 <Link href={hero.secondary_cta_link || '/contact-us'} className="new-btn-secondary">
                   {hero.secondary_cta_label || 'Request a Quote'}
+                </Link>
+              </motion.div>
+              <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}>
+                <Link href="/membership" className="new-btn-membership">
+                  <Gem size={16} />
+                  Apex Vault Membership
                 </Link>
               </motion.div>
             </motion.div>
@@ -439,6 +452,14 @@ export default function Home() {
                 </Reveal>
               ))}
             </div>
+          </div>
+        </section>
+      )}
+
+      {membership?.enabled !== false && (
+        <section className="membership-section">
+          <div className="container">
+            <MembershipCard membership={membership} />
           </div>
         </section>
       )}
@@ -828,75 +849,6 @@ export default function Home() {
               </p>
             </Reveal>
             <TestimonialCarousel testimonials={testimonials} />
-          </div>
-        </section>
-      )}
-
-      {membership?.enabled !== false && (
-        <section className="membership-section">
-          <div className="container">
-            <Reveal as="div" className="membership-card">
-              <div className="membership-inner">
-                <div className="membership-eyebrow-wrap">
-                  <span className="membership-eyebrow-line" />
-                  <span className="membership-eyebrow-text">
-                    {membership.eyebrow || 'ELITE RESEARCH ACCESS'}
-                  </span>
-                  <span className="membership-eyebrow-line" />
-                </div>
-
-                <h2 className="membership-title">
-                  {membership.title || 'What Is The'}{' '}
-                  <span className="membership-title-highlight">
-                    {membership.title_highlight || 'Apex Vault'}
-                  </span>{' '}
-                  {membership.title_after || 'Membership?'}
-                </h2>
-
-                <div className="membership-plan-row">
-                  <span>{membership.plan_label || 'APEX VAULT MEMBERSHIP'}</span>
-                  <span className="membership-plan-dot" />
-                  <span>{membership.plan_duration || 'ONE RESEARCHER • ONE YEAR'}</span>
-                </div>
-
-                <div className="membership-benefits-tag">
-                  <span className="membership-tag-line" />
-                  <span>{membership.benefits_heading || 'EXCLUSIVE BENEFITS'}</span>
-                  <span className="membership-tag-line" />
-                </div>
-
-                <div className="membership-benefits-grid">
-                  {(membership.benefits || []).map((b, idx) => (
-                    <div className="membership-benefit-item" key={idx}>
-                      <span className="membership-check-badge">
-                        <Check size={13} strokeWidth={3} />
-                      </span>
-                      <div>
-                        <h4>{b.title}</h4>
-                        <p>{b.text}</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                <div className="membership-price-box">
-                  <span className="membership-price">{membership.price || '$2,497.00'}</span>
-                  <span className="membership-price-note">
-                    {membership.price_note || 'USD / year — billed annually. Limited seats available.'}
-                  </span>
-                </div>
-
-                <Link href={membership.cta_link || '/contact-us'} className="membership-cta-btn">
-                  <span className="membership-cta-tick" />
-                  <span>{membership.cta_label || 'Unlock The Vault'}</span>
-                  <span className="membership-cta-tick" />
-                </Link>
-
-                {membership.closing_text && (
-                  <p className="membership-closing-text">{membership.closing_text}</p>
-                )}
-              </div>
-            </Reveal>
           </div>
         </section>
       )}

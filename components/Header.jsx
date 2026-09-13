@@ -12,6 +12,7 @@ import { User, ShoppingCart, Menu, X, Settings, ArrowRight, FlaskConical, Heart 
 const NAV_LINKS = [
   { href: '/', label: 'Home', end: true },
   { href: '/shop', label: 'Shop' },
+  { href: '/membership', label: 'Membership' },
   { href: '/about-us', label: 'About Us' },
   { href: '/faq', label: 'FAQ' },
   { href: '/contact-us', label: 'Contact' },
