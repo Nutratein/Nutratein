@@ -13,19 +13,60 @@ import {
   XCircle,
   Copy,
   Check,
-  ChevronDown,
-  ChevronUp,
   RefreshCw,
   ExternalLink,
   Package,
-  AlertCircle
+  AlertCircle,
+  X,
+  Wallet,
+  Tag,
+  Calendar,
+  MapPin,
+  User,
+  Receipt,
+  Truck as TruckIcon,
+  StickyNote,
 } from 'lucide-react';
 
 const STATUSES = ['pending', 'processing', 'shipped', 'completed', 'cancelled'];
 
+const PAYMENT_LABELS = {
+  wallet_usd: 'USD Wallet',
+  wallet_cad: 'CAD Wallet',
+  card: 'Credit / Debit Card',
+  wire: 'Wire Transfer',
+};
+
+// Orders store payment/shipping preference inside shipping_address (new orders) and/or
+// baked into the free-text `notes` string as "[Method: X, Shipping: Y]" (legacy fallback).
+function parseOrderMeta(o) {
+  let paymentMethod = o.shipping_address?.payment_preference || null;
+  let shippingMethod = o.shipping_address?.shipping_method || null;
+  let customerNote = o.notes || '';
+
+  const tagMatch = customerNote.match(/\[Method:\s*([^,]+),\s*Shipping:\s*([^\]]+)\]/i);
+  if (tagMatch) {
+    if (!paymentMethod) paymentMethod = tagMatch[1].trim().toLowerCase();
+    if (!shippingMethod) shippingMethod = tagMatch[2].trim().toLowerCase();
+    customerNote = customerNote.replace(tagMatch[0], '').trim();
+  }
+
+  const paymentLabel = paymentMethod
+    ? PAYMENT_LABELS[paymentMethod] || paymentMethod.replace(/_/g, ' ').toUpperCase()
+    : 'Not specified';
+  const shippingLabel = shippingMethod
+    ? shippingMethod
+        .split('-')
+        .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+        .join(' ')
+    : 'Standard';
+
+  return { paymentLabel, shippingLabel, customerNote };
+}
+
 export default function AdminOrders() {
   const [orders, setOrders] = useState([]);
-  const [expanded, setExpanded] = useState(null);
+  const [selectedOrder, setSelectedOrder] = useState(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -64,6 +105,7 @@ export default function AdminOrders() {
 
   async function updateStatus(id, status) {
     setOrders((prev) => prev.map((o) => (o.id === id ? { ...o, status } : o)));
+    setSelectedOrder((prev) => (prev && prev.id === id ? { ...prev, status } : prev));
     try {
       const { error } = await supabase.from('orders').update({ status }).eq('id', id);
       if (error) throw error;
@@ -271,7 +313,6 @@ export default function AdminOrders() {
               </thead>
               <tbody>
                 {filteredOrders.map((o) => {
-                  const isExp = expanded === o.id;
                   const dateStr = new Date(o.created_at).toLocaleDateString('en-US', {
                     month: 'short',
                     day: 'numeric',
@@ -358,113 +399,13 @@ export default function AdminOrders() {
                           <button
                             className="account-btn-secondary"
                             style={{ padding: '5px 12px', fontSize: 12 }}
-                            onClick={() => setExpanded(isExp ? null : o.id)}
+                            onClick={() => setSelectedOrder(o)}
                           >
-                            <span>{isExp ? 'Hide Details' : `View Items (${o.order_items?.length || 0})`}</span>
-                            {isExp ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                            <span>View Details ({o.order_items?.length || 0})</span>
+                            <ExternalLink size={13} />
                           </button>
                         </td>
                       </tr>
-
-                      {/* Expanded Items & Address Accordion */}
-                      {isExp && (
-                        <tr>
-                          <td colSpan={6} style={{ background: '#171b23', padding: '18px 24px' }}>
-                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 20 }}>
-                              <div>
-                                <h4 style={{ margin: '0 0 10px', fontSize: 13, textTransform: 'uppercase', color: '#a8adb4', letterSpacing: '0.04em' }}>
-                                  Line Items ({o.order_items?.length || 0})
-                                </h4>
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                                  {o.order_items?.map((item) => {
-                                    const itemImg = resolveProductImage(item);
-                                    return (
-                                      <div
-                                        key={item.id}
-                                        style={{
-                                          display: 'flex',
-                                          alignItems: 'center',
-                                          justifyContent: 'space-between',
-                                          gap: 12,
-                                          fontSize: 13.5,
-                                          background: '#12151b',
-                                          padding: '8px 12px',
-                                          borderRadius: 8,
-                                          border: '1px solid var(--color-border)',
-                                          flexWrap: 'wrap',
-                                        }}
-                                      >
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
-                                          <div
-                                            style={{
-                                              width: 38,
-                                              height: 38,
-                                              borderRadius: 6,
-                                              background: '#171b23',
-                                              border: '1px solid var(--color-border)',
-                                              display: 'flex',
-                                              alignItems: 'center',
-                                              justifyContent: 'center',
-                                              overflow: 'hidden',
-                                              padding: 2,
-                                              flexShrink: 0,
-                                            }}
-                                          >
-                                            <img
-                                              src={itemImg}
-                                              alt={item.product_name}
-                                              style={{ width: '100%', height: '100%', objectFit: 'contain' }}
-                                              onError={(e) => { e.currentTarget.src = '/images/fragment-1-300x300.webp'; }}
-                                            />
-                                          </div>
-                                          <div style={{ minWidth: 0 }}>
-                                            <div style={{ fontWeight: 600, color: '#f1f5f9' }}>
-                                              {item.product_name}
-                                            </div>
-                                            <div style={{ fontSize: 12, color: '#a8adb4' }}>
-                                              Qty: {item.quantity} &bull; ${Number(item.unit_price || 0).toFixed(2)} each
-                                            </div>
-                                          </div>
-                                        </div>
-                                        <span style={{ fontWeight: 700, color: '#f1f5f9' }}>
-                                          ${Number(item.line_total).toFixed(2)}
-                                        </span>
-                                      </div>
-                                    );
-                                  })}
-                                </div>
-                              </div>
-
-                              <div>
-                                <h4 style={{ margin: '0 0 10px', fontSize: 13, textTransform: 'uppercase', color: '#a8adb4', letterSpacing: '0.04em' }}>
-                                  Shipping Address &amp; Contact
-                                </h4>
-                                <div style={{ background: '#12151b', padding: '10px 14px', borderRadius: 8, border: '1px solid var(--color-border)', fontSize: 13, lineHeight: 1.6 }}>
-                                  {o.shipping_address ? (
-                                    <>
-                                      <div>{o.shipping_address.address1}</div>
-                                      {o.shipping_address.address2 && <div>{o.shipping_address.address2}</div>}
-                                      <div>
-                                        {o.shipping_address.city}, {o.shipping_address.state}{' '}
-                                        {o.shipping_address.postal_code}
-                                      </div>
-                                      <div>{o.shipping_address.country}</div>
-                                    </>
-                                  ) : (
-                                    <span style={{ color: '#94a3b8' }}>Standard Ground Delivery</span>
-                                  )}
-                                  {o.phone && <div style={{ marginTop: 4 }}>Phone: {o.phone}</div>}
-                                  {o.notes && (
-                                    <div style={{ marginTop: 6, color: '#dc2626' }}>
-                                      <em>Notes: {o.notes}</em>
-                                    </div>
-                                  )}
-                                </div>
-                              </div>
-                            </div>
-                          </td>
-                        </tr>
-                      )}
                     </Fragment>
                   );
                 })}
@@ -473,6 +414,310 @@ export default function AdminOrders() {
           </div>
         )}
       </div>
+
+      {/* ORDER DETAILS MODAL */}
+      <AnimatePresence>
+        {selectedOrder && (
+          <OrderDetailsModal
+            order={selectedOrder}
+            onClose={() => setSelectedOrder(null)}
+            onStatusChange={updateStatus}
+            onCopyId={handleCopyId}
+            copiedId={copiedId}
+          />
+        )}
+      </AnimatePresence>
     </div>
+  );
+}
+
+function OrderDetailsModal({ order: o, onClose, onStatusChange, onCopyId, copiedId }) {
+  const { paymentLabel, shippingLabel, customerNote } = parseOrderMeta(o);
+
+  const itemsSubtotal = (o.order_items || []).reduce((sum, item) => sum + Number(item.line_total || 0), 0);
+  const discountAmount = Number(o.discount_amount || 0);
+  const total = Number(o.total || 0);
+  const shippingFee = Math.max(0, Number((total - itemsSubtotal + discountAmount).toFixed(2)));
+
+  const placedAt = new Date(o.created_at);
+  const dateStr = placedAt.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+  const timeStr = placedAt.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+
+  const statusMeta = {
+    pending: { icon: Clock, color: '#f59e0b' },
+    processing: { icon: RefreshCw, color: '#3b82f6' },
+    shipped: { icon: TruckIcon, color: '#8b5cf6' },
+    completed: { icon: CheckCircle2, color: '#10b981' },
+    cancelled: { icon: XCircle, color: '#dc2626' },
+  }[o.status || 'pending'] || { icon: Clock, color: '#94a3b8' };
+  const StatusIcon = statusMeta.icon;
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      onClick={onClose}
+      style={{
+        position: 'fixed',
+        inset: 0,
+        background: 'rgba(8, 8, 12, 0.7)',
+        backdropFilter: 'blur(6px)',
+        zIndex: 9999,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: 20,
+      }}
+    >
+      <motion.div
+        initial={{ opacity: 0, scale: 0.96, y: 20 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.96, y: 16 }}
+        transition={{ duration: 0.2 }}
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          background: 'var(--color-surface)',
+          borderRadius: 20,
+          maxWidth: 780,
+          width: '100%',
+          maxHeight: '90vh',
+          display: 'flex',
+          flexDirection: 'column',
+          boxShadow: '0 30px 70px -20px rgba(0,0,0,0.65)',
+          overflow: 'hidden',
+        }}
+      >
+        {/* Header */}
+        <div
+          style={{
+            padding: '20px 24px',
+            borderBottom: '1px solid var(--color-border)',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            background: '#171b23',
+            flexWrap: 'wrap',
+            gap: 12,
+          }}
+        >
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <h3 style={{ margin: 0, fontSize: 18, fontWeight: 800 }}>
+                Order #{o.id.slice(0, 8).toUpperCase()}
+              </h3>
+              <button
+                className="admin-copy-icon-btn"
+                onClick={() => onCopyId(o.id)}
+                title="Copy full Order ID"
+              >
+                {copiedId === o.id ? <Check size={14} style={{ color: '#10b981' }} /> : <Copy size={14} />}
+              </button>
+            </div>
+            <div style={{ fontSize: 12.5, color: '#94a3b8', marginTop: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
+              <Calendar size={13} />
+              <span>{dateStr} at {timeStr}</span>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <select
+              value={o.status || 'pending'}
+              onChange={(e) => onStatusChange(o.id, e.target.value)}
+              style={{
+                padding: '7px 12px',
+                fontSize: 12.5,
+                fontWeight: 700,
+                borderRadius: 8,
+                border: `1.5px solid ${statusMeta.color}55`,
+                background: `${statusMeta.color}18`,
+                color: statusMeta.color,
+                cursor: 'pointer',
+                outline: 'none',
+              }}
+            >
+              {STATUSES.map((s) => (
+                <option key={s} value={s} style={{ background: '#171b23', color: '#fff' }}>
+                  {s.toUpperCase()}
+                </option>
+              ))}
+            </select>
+            <button
+              onClick={onClose}
+              style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#a8adb4' }}
+            >
+              <X size={20} />
+            </button>
+          </div>
+        </div>
+
+        <div style={{ overflowY: 'auto', padding: 24, display: 'flex', flexDirection: 'column', gap: 22 }}>
+          {/* Customer + Payment + Shipping summary strip */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 12 }}>
+            <div style={{ background: '#171b23', border: '1px solid var(--color-border)', borderRadius: 10, padding: '12px 14px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11.5, color: '#94a3b8', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                <User size={13} /> Customer
+              </div>
+              <div style={{ fontWeight: 700, fontSize: 14 }}>{o.full_name || 'Guest'}</div>
+              <div style={{ fontSize: 12.5, color: '#a8adb4' }}>{o.email}</div>
+              {o.phone && <div style={{ fontSize: 12.5, color: '#a8adb4' }}>{o.phone}</div>}
+            </div>
+
+            <div style={{ background: '#171b23', border: '1px solid var(--color-border)', borderRadius: 10, padding: '12px 14px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11.5, color: '#94a3b8', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                <Wallet size={13} /> Payment Method
+              </div>
+              <div style={{ fontWeight: 700, fontSize: 14 }}>{paymentLabel}</div>
+              <div style={{ fontSize: 12.5, color: '#a8adb4', display: 'flex', alignItems: 'center', gap: 4, marginTop: 2 }}>
+                <StatusIcon size={13} style={{ color: statusMeta.color }} />
+                <span style={{ color: statusMeta.color, fontWeight: 650 }}>
+                  {(o.payment_status || (o.status === 'cancelled' ? 'unpaid' : 'paid')).toUpperCase()}
+                </span>
+              </div>
+            </div>
+
+            <div style={{ background: '#171b23', border: '1px solid var(--color-border)', borderRadius: 10, padding: '12px 14px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11.5, color: '#94a3b8', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                <TruckIcon size={13} /> Shipping Method
+              </div>
+              <div style={{ fontWeight: 700, fontSize: 14 }}>{shippingLabel}</div>
+            </div>
+          </div>
+
+          {/* Line Items */}
+          <div>
+            <h4 style={{ margin: '0 0 10px', fontSize: 13, textTransform: 'uppercase', color: '#a8adb4', letterSpacing: '0.04em' }}>
+              Line Items ({o.order_items?.length || 0})
+            </h4>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {o.order_items?.map((item) => {
+                const itemImg = resolveProductImage(item);
+                return (
+                  <div
+                    key={item.id}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      gap: 12,
+                      fontSize: 13.5,
+                      background: '#171b23',
+                      padding: '8px 12px',
+                      borderRadius: 8,
+                      border: '1px solid var(--color-border)',
+                      flexWrap: 'wrap',
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
+                      <div
+                        style={{
+                          width: 38,
+                          height: 38,
+                          borderRadius: 6,
+                          background: '#12151b',
+                          border: '1px solid var(--color-border)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          overflow: 'hidden',
+                          padding: 2,
+                          flexShrink: 0,
+                        }}
+                      >
+                        <img
+                          src={itemImg}
+                          alt={item.product_name}
+                          style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+                          onError={(e) => { e.currentTarget.src = '/images/fragment-1-300x300.webp'; }}
+                        />
+                      </div>
+                      <div style={{ minWidth: 0 }}>
+                        <div style={{ fontWeight: 600, color: '#f1f5f9' }}>
+                          {item.product_name}
+                          {item.variant_label && (
+                            <span style={{ color: 'var(--color-brand)', fontWeight: 650 }}> · {item.variant_label}</span>
+                          )}
+                        </div>
+                        <div style={{ fontSize: 12, color: '#a8adb4' }}>
+                          Qty: {item.quantity} &bull; ${Number(item.unit_price || 0).toFixed(2)} each
+                        </div>
+                      </div>
+                    </div>
+                    <span style={{ fontWeight: 700, color: '#f1f5f9' }}>
+                      ${Number(item.line_total).toFixed(2)}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Financial Breakdown */}
+          <div>
+            <h4 style={{ margin: '0 0 10px', fontSize: 13, textTransform: 'uppercase', color: '#a8adb4', letterSpacing: '0.04em', display: 'flex', alignItems: 'center', gap: 6 }}>
+              <Receipt size={14} /> Order Total Breakdown
+            </h4>
+            <div style={{ background: '#171b23', border: '1px solid var(--color-border)', borderRadius: 10, padding: '14px 16px', fontSize: 13.5, display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <span style={{ color: '#a8adb4' }}>Items Subtotal</span>
+                <span>${itemsSubtotal.toFixed(2)}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <span style={{ color: '#a8adb4', display: 'flex', alignItems: 'center', gap: 5 }}>
+                  <TruckIcon size={13} /> Shipping Fee
+                </span>
+                <span>{shippingFee === 0 ? <span style={{ color: '#34d399', fontWeight: 700 }}>FREE</span> : `$${shippingFee.toFixed(2)}`}</span>
+              </div>
+              {discountAmount > 0 && (
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span style={{ color: '#a8adb4', display: 'flex', alignItems: 'center', gap: 5 }}>
+                    <Tag size={13} /> Discount {o.promo_code ? `(${o.promo_code})` : ''}
+                  </span>
+                  <span style={{ color: '#dc2626' }}>-${discountAmount.toFixed(2)}</span>
+                </div>
+              )}
+              <div style={{ borderTop: '1px solid var(--color-border)', marginTop: 4, paddingTop: 10, display: 'flex', justifyContent: 'space-between' }}>
+                <strong style={{ fontSize: 15 }}>Total Paid</strong>
+                <strong style={{ fontSize: 16, color: 'var(--color-brand)' }}>${total.toFixed(2)}</strong>
+              </div>
+            </div>
+          </div>
+
+          {/* Shipping Address */}
+          <div>
+            <h4 style={{ margin: '0 0 10px', fontSize: 13, textTransform: 'uppercase', color: '#a8adb4', letterSpacing: '0.04em', display: 'flex', alignItems: 'center', gap: 6 }}>
+              <MapPin size={14} /> Shipping Address
+            </h4>
+            <div style={{ background: '#171b23', padding: '12px 14px', borderRadius: 8, border: '1px solid var(--color-border)', fontSize: 13.5, lineHeight: 1.7 }}>
+              {o.shipping_address ? (
+                <>
+                  <div>{o.shipping_address.address1}</div>
+                  {o.shipping_address.address2 && <div>{o.shipping_address.address2}</div>}
+                  <div>
+                    {o.shipping_address.city}, {o.shipping_address.state}{' '}
+                    {o.shipping_address.postal_code}
+                  </div>
+                  <div>{o.shipping_address.country}</div>
+                </>
+              ) : (
+                <span style={{ color: '#94a3b8' }}>No shipping address on file.</span>
+              )}
+            </div>
+          </div>
+
+          {/* Customer Notes */}
+          {customerNote && (
+            <div>
+              <h4 style={{ margin: '0 0 10px', fontSize: 13, textTransform: 'uppercase', color: '#a8adb4', letterSpacing: '0.04em', display: 'flex', alignItems: 'center', gap: 6 }}>
+                <StickyNote size={14} /> Customer Notes
+              </h4>
+              <div style={{ background: '#171b23', padding: '12px 14px', borderRadius: 8, border: '1px solid var(--color-border)', fontSize: 13.5, fontStyle: 'italic', color: '#d1d5db' }}>
+                {customerNote}
+              </div>
+            </div>
+          )}
+        </div>
+      </motion.div>
+    </motion.div>
   );
 }

@@ -1,10 +1,14 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useCart, resolveProductImage } from '@/context/CartContext';
 import { useAuth } from '@/context/AuthContext';
+import { supabase } from '@/lib/supabaseClient';
+import { getCadRate } from '@/lib/wallet';
+import { getShippingSettings, DEFAULT_SHIPPING_SETTINGS } from '@/lib/shippingSettings';
+import { validatePromoCode } from '@/lib/promoCodes';
 import { PRODUCTS } from '@/lib/shopData';
 import { 
   ShoppingBag, 
@@ -23,22 +27,37 @@ import {
   FileText
 } from 'lucide-react';
 
-const FREE_SHIPPING_THRESHOLD = 100;
-
 export default function CartPage() {
-  const { items, updateQuantity, removeItem, clearCart, addItem, subtotal, itemCount, hydrated } = useCart();
+  const { items, updateQuantity, removeItem, clearCart, addItem, subtotal, itemCount, hydrated, appliedPromo, setAppliedPromo, clearPromo } = useCart();
   const { user } = useAuth();
 
   // Promo code state
   const [promoCode, setPromoCode] = useState('');
-  const [appliedPromo, setAppliedPromo] = useState(null);
   const [promoError, setPromoError] = useState('');
+  const [checkingPromo, setCheckingPromo] = useState(false);
   const [orderNote, setOrderNote] = useState('');
   const [showNoteField, setShowNoteField] = useState(false);
+  const [cadRate, setCadRate] = useState(1.35);
+  const [shippingSettings, setShippingSettings] = useState(DEFAULT_SHIPPING_SETTINGS);
+  const FREE_SHIPPING_THRESHOLD = shippingSettings.free_shipping_threshold;
+  const [liveProducts, setLiveProducts] = useState(null);
 
-  // Recommendations (products not yet in cart)
+  useEffect(() => {
+    getCadRate().then(setCadRate);
+    getShippingSettings().then(setShippingSettings);
+    supabase
+      .from('products')
+      .select('id, name, slug, price, image_url')
+      .eq('is_active', true)
+      .order('featured', { ascending: false })
+      .limit(12)
+      .then(({ data }) => setLiveProducts(data && data.length > 0 ? data : PRODUCTS));
+  }, []);
+
+  // Recommendations (products not yet in cart) — pulled live so a deleted or
+  // repriced product never shows stale info here.
   const cartItemIds = (items || []).map((i) => i.id);
-  const recommendedProducts = PRODUCTS.filter((p) => !cartItemIds.includes(p.id)).slice(0, 3);
+  const recommendedProducts = (liveProducts || []).filter((p) => !cartItemIds.includes(p.id)).slice(0, 3);
 
   // Free shipping progress
   const amountToFreeShipping = Math.max(0, FREE_SHIPPING_THRESHOLD - subtotal);
@@ -48,31 +67,33 @@ export default function CartPage() {
   // Pricing calculations
   const discountRate = appliedPromo ? appliedPromo.discountPercent : 0;
   const discountAmount = subtotal * discountRate;
-  const shippingFee = subtotal === 0 ? 0 : (isFreeShipping ? 0 : 9.99);
+  const shippingFee = subtotal === 0 ? 0 : (isFreeShipping ? 0 : shippingSettings.standard_fee);
   const finalTotal = Math.max(0, subtotal - discountAmount + (subtotal > 0 ? shippingFee : 0));
 
-  const handleApplyPromo = (e) => {
+  const handleApplyPromo = async (e) => {
     e.preventDefault();
     setPromoError('');
-    const code = promoCode.trim().toUpperCase();
-
+    const code = promoCode.trim();
     if (!code) return;
 
-    if (code === 'NUTRATEIN10' || code === 'DRAGO10' || code === 'SAVE10') {
-      setAppliedPromo({ code, discountPercent: 0.1, label: '10% OFF Special' });
-      setPromoCode('');
-      setPromoError('');
-    } else if (code === 'VIP15' || code === 'RESEARCH15') {
-      setAppliedPromo({ code, discountPercent: 0.15, label: '15% Researcher Discount' });
-      setPromoCode('');
-      setPromoError('');
-    } else {
-      setPromoError('Invalid coupon. Try "NUTRATEIN10" for 10% off.');
+    setCheckingPromo(true);
+    try {
+      const result = await validatePromoCode(code);
+      if (result) {
+        setAppliedPromo(result);
+        setPromoCode('');
+      } else {
+        setPromoError('Invalid or expired coupon code.');
+      }
+    } catch {
+      setPromoError('Could not verify coupon right now. Please try again.');
+    } finally {
+      setCheckingPromo(false);
     }
   };
 
   const handleRemovePromo = () => {
-    setAppliedPromo(null);
+    clearPromo();
     setPromoError('');
   };
 
@@ -284,6 +305,9 @@ export default function CartPage() {
                         <Link href={`/shop/${item.slug || item.id}`} className="cart-item-title">
                           {item.name}
                         </Link>
+                        {item.variant_label && (
+                          <span className="cart-item-variant-tag">{item.variant_label}</span>
+                        )}
                         <div className="cart-item-price-unit">
                           ${item.price.toFixed(2)} <span style={{ color: '#9ca3af', fontSize: 12 }}>/ vial</span>
                         </div>
@@ -404,7 +428,7 @@ export default function CartPage() {
                           {product.name}
                         </Link>
                         <div className="cross-sell-h-bottom">
-                          <span className="cross-sell-h-price">${product.price.toFixed(2)}</span>
+                          <span className="cross-sell-h-price">${Number(product.price).toFixed(2)}</span>
                           <button 
                             type="button" 
                             onClick={() => addItem(product, 1)}
@@ -457,8 +481,8 @@ export default function CartPage() {
                         value={promoCode}
                         onChange={(e) => setPromoCode(e.target.value)}
                       />
-                      <button type="submit" className="promo-submit-btn">
-                        Apply
+                      <button type="submit" className="promo-submit-btn" disabled={checkingPromo}>
+                        {checkingPromo ? '...' : 'Apply'}
                       </button>
                     </div>
                     {promoError && <p style={{ fontSize: 12, color: '#dc2626', margin: '6px 0 0 4px' }}>{promoError}</p>}
@@ -504,7 +528,7 @@ export default function CartPage() {
                   <span>Estimated Total</span>
                   <span className="total-price">${finalTotal.toFixed(2)}</span>
                 </div>
-                <div className="currency-notice">Taxes & exact shipping calculated at checkout</div>
+                <div className="currency-notice">≈ C${(finalTotal * cadRate).toFixed(2)} · Taxes & exact shipping calculated at checkout</div>
               </div>
 
               {/* Proceed to Checkout CTA */}

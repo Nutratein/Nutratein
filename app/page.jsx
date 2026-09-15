@@ -6,6 +6,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '@/lib/supabaseClient';
 import { ChevronLeft, ChevronRight, Gem } from 'lucide-react';
 import { getSiteContent } from '@/lib/siteContent';
+import { useAuth } from '@/context/AuthContext';
+import { getCadRate } from '@/lib/wallet';
 import ProductCard from '@/components/ProductCard.jsx';
 import Reveal from '@/components/Reveal.jsx';
 import Marquee from '@/components/Marquee.jsx';
@@ -106,6 +108,83 @@ const WHY_US_CARDS = [
   },
 ];
 
+// Picks a visual treatment (icon/colors/corner graphic/pill label) for a
+// "Why Us" feature card based on keywords in its admin-edited title, so
+// content.features (editable in Admin → Homepage → Features) always gets a
+// sensible look even though admins only type text, not pick icons.
+function getFeatureVisual(title) {
+  const t = (title || '').toLowerCase();
+  if (t.includes('test') || t.includes('purity') || t.includes('qualit') || t.includes('grade')) {
+    return {
+      iconBg: '#fef2f2', iconBorder: '#fee2e2', iconColor: '#c1121f',
+      cornerImg: '/images/feature-flask.png', action: 'Verified Quality',
+      icon: (
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M6 18h8" />
+          <path d="M3 22h18" />
+          <path d="m14 22 .5-4.5" />
+          <circle cx="9" cy="9" r="2" />
+          <path d="M12 18a5 5 0 0 0 4.8-3.6L18 8a3 3 0 0 0-3-3l-6.4 1.6" />
+          <path d="m7 18 3-10" />
+        </svg>
+      ),
+    };
+  }
+  if (t.includes('ship') || t.includes('deliver') || t.includes('discreet')) {
+    return {
+      iconBg: '#eff6ff', iconBorder: '#dbeafe', iconColor: '#c1121f',
+      cornerImg: '/images/feature-shipping.png', action: 'Global Delivery',
+      icon: (
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+          <rect x="1" y="3" width="15" height="13"></rect>
+          <polygon points="16 8 20 8 23 11 23 16 16 16 8"></polygon>
+          <circle cx="5.5" cy="18.5" r="2.5"></circle>
+          <circle cx="18.5" cy="18.5" r="2.5"></circle>
+        </svg>
+      ),
+    };
+  }
+  if (t.includes('secure') || t.includes('checkout') || t.includes('payment') || t.includes('privacy')) {
+    return {
+      iconBg: '#f0fdf4', iconBorder: '#dcfce7', iconColor: '#c1121f',
+      cornerImg: '/images/feature-shield.png', action: 'Your Data, Protected',
+      icon: (
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+          <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+          <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+        </svg>
+      ),
+    };
+  }
+  if (t.includes('custom') || t.includes('synthesis') || t.includes('sequence')) {
+    return {
+      iconBg: '#faf5ff', iconBorder: '#f3e8ff', iconColor: '#c1121f',
+      cornerImg: '/images/feature-molecule.png', action: 'Tailored for You',
+      icon: (
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M2 15c6.667-6 13.333 0 20-6"></path>
+          <path d="M9 22c1.798-1.998 2.518-3.995 2.807-5.993"></path>
+          <path d="M15 2c-1.798 1.998-2.518 3.995-2.807 5.993"></path>
+          <path d="m17 6-2.5-2.5"></path>
+          <path d="m14 8-4-4"></path>
+          <path d="m7 18 2.5 2.5"></path>
+          <path d="m10 16 4 4"></path>
+        </svg>
+      ),
+    };
+  }
+  return {
+    iconBg: '#fef2f2', iconBorder: '#fee2e2', iconColor: '#c1121f',
+    cornerImg: '/images/feature-flask.png', action: 'Learn More',
+    icon: (
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="12" cy="12" r="10" />
+        <path d="m9 12 2 2 4-4" />
+      </svg>
+    ),
+  };
+}
+
 function getStatIcon(label) {
   const l = (label || '').toLowerCase();
   if (l.includes('peptide') || l.includes('research') || l.includes('lab') || l.includes('product')) {
@@ -159,14 +238,16 @@ function getStatIcon(label) {
 // yet (or the request fails) — the homepage should never look broken.
 const DEFAULT_CONTENT = {
   hero: {
-    eyebrow: 'Research Peptides & Custom Synthesis',
+    eyebrow: 'RESEARCH • INNOVATION • BETTER HEALTH',
     title: 'Peptides for Revitalization & Health',
     subtitle:
-      'Drago Pharma supplies high-purity peptides synthesized for laboratory and investigational research, with bulk supply and custom synthesis available.',
+      'The Pep Shop supplies high-purity peptides synthesized for laboratory and investigational research, with bulk supply and custom synthesis available.',
     primary_cta_label: 'Shop Peptides',
     primary_cta_link: '/shop',
     secondary_cta_label: 'Request a Quote',
     secondary_cta_link: '/contact-us',
+    bg_image_url: 'https://res.cloudinary.com/qjbhc75v/image/upload/thepepshop/homepage/hero_bg1.png',
+    product_image_url: 'https://res.cloudinary.com/qjbhc75v/image/upload/thepepshop/homepage/hero_product_img.png',
   },
   trust_badges: ['Third-Party Tested', 'Ships in 24h', 'USA Based Lab', '>99% Purity', 'Secure Checkout'],
   stats: [
@@ -206,7 +287,7 @@ const DEFAULT_CONTENT = {
     price: '$2,497.00',
     price_note: 'USD / year — billed annually. Limited seats available.',
     cta_label: 'Unlock The Vault',
-    cta_link: '/contact-us',
+    cta_link: '/membership#buy-with-wallet',
     closing_text: 'Built for institutions and independent researchers who need more than a storefront — a dedicated supply partner.',
   },
 };
@@ -242,12 +323,16 @@ const FALLBACK_FEATURED = [
 ];
 
 export default function Home() {
+  const { profile } = useAuth();
+  const isActiveMember = profile?.is_member && profile?.membership_expires_at && new Date(profile.membership_expires_at) > new Date();
   const [featured, setFeatured] = useState([]);
   const [loading, setLoading] = useState(true);
   const [content, setContent] = useState(DEFAULT_CONTENT);
   const [carouselIndex, setCarouselIndex] = useState(0);
   const [email, setEmail] = useState('');
   const [subscribed, setSubscribed] = useState(false);
+  const [categoryCards, setCategoryCards] = useState(null);
+  const [cadRate, setCadRate] = useState(1.35);
 
   const prevSlide = () => {
     setCarouselIndex((prev) => (prev <= 0 ? (featured.length > 0 ? featured.length - 1 : 0) : prev - 1));
@@ -260,7 +345,7 @@ export default function Home() {
     let active = true;
     supabase
       .from('products')
-      .select('*')
+      .select('*, product_variants(id, price, stock, is_default)')
       .eq('featured', true)
       .eq('is_active', true)
       .order('created_at', { ascending: false })
@@ -281,6 +366,29 @@ export default function Home() {
         }
       });
 
+    getCadRate().then(setCadRate);
+
+    Promise.all([
+      supabase.from('categories').select('*').eq('show_on_homepage', true).order('name').limit(6),
+      supabase.from('products').select('category_id').eq('is_active', true),
+    ]).then(([{ data: cats }, { data: prods }]) => {
+      if (!active || !cats || cats.length === 0) return;
+      const counts = {};
+      (prods || []).forEach((p) => {
+        if (p.category_id) counts[p.category_id] = (counts[p.category_id] || 0) + 1;
+      });
+      const themes = ['fat-loss', 'muscle-growth', 'recovery'];
+      setCategoryCards(
+        cats.map((c, i) => ({
+          slug: c.slug,
+          name: c.name,
+          count: `${counts[c.id] || 0} items`,
+          theme: themes[i % themes.length],
+          image: c.image_url || CATEGORY_META[i % CATEGORY_META.length].image,
+        }))
+      );
+    });
+
     getSiteContent('home', DEFAULT_CONTENT).then((value) => {
       if (active && value) {
         setContent({
@@ -296,6 +404,13 @@ export default function Home() {
 
   const { hero, trust_badges, stats, features, testimonials, promo, newsletter, membership } = content;
 
+  const whyCards = (features && features.length > 0 ? features : WHY_US_CARDS).map((f, i) => ({
+    num: String(i + 1).padStart(2, '0'),
+    title: f.title,
+    desc: f.desc || f.text,
+    ...getFeatureVisual(f.title),
+  }));
+
   function handleSubscribe(e) {
     e.preventDefault();
     if (!email) return;
@@ -304,7 +419,10 @@ export default function Home() {
 
   return (
     <>
-      <section className="new-hero">
+      <section
+        className="new-hero"
+        style={hero.bg_image_url ? { backgroundImage: `url(${hero.bg_image_url})` } : undefined}
+      >
         <div className="container new-hero-container">
           <div className="new-hero-content">
             <motion.div 
@@ -313,18 +431,27 @@ export default function Home() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5 }}
             >
-              RESEARCH &nbsp;•&nbsp; INNOVATION &nbsp;•&nbsp; BETTER HEALTH
+              {hero.eyebrow || 'RESEARCH • INNOVATION • BETTER HEALTH'}
             </motion.div>
-            
-            <motion.h1 
+
+            <motion.h1
               className="new-hero-title"
               initial={{ opacity: 0, y: 15 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.1 }}
             >
-              Peptides for <br className="hidden md:block"/>
-              <span className="text-brand">Revitalization &amp;</span> <br className="hidden md:block"/>
-              Health
+              {(() => {
+                const titleText = hero.title || 'Peptides for Revitalization & Health';
+                const words = titleText.trim().split(' ');
+                const lastWord = words.pop();
+                const rest = words.join(' ');
+                return (
+                  <>
+                    {rest} <br className="hidden md:block" />
+                    <span className="text-brand">{lastWord}</span>
+                  </>
+                );
+              })()}
             </motion.h1>
             
             <motion.p 
@@ -334,7 +461,7 @@ export default function Home() {
               transition={{ duration: 0.5, delay: 0.2 }}
             >
               {hero.subtitle ||
-                'Drago Pharma supplies high-purity peptides synthesized for laboratory and investigational research, with bulk supply and custom synthesis available.'}
+                'The Pep Shop supplies high-purity peptides synthesized for laboratory and investigational research, with bulk supply and custom synthesis available.'}
             </motion.p>
             
             <motion.div 
@@ -420,7 +547,11 @@ export default function Home() {
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.8, ease: "easeOut", delay: 0.2 }}
           >
-            <img src="/images/hero_img/hero_product_img.png" alt="Drago Pharma Product Showcase" className="new-hero-product-image" />
+            <img
+              src={hero.product_image_url || '/images/hero_img/hero_product_img.png'}
+              alt="The Pep Shop Product Showcase"
+              className="new-hero-product-image"
+            />
           </motion.div>
         </div>
       </section>
@@ -459,7 +590,7 @@ export default function Home() {
       {membership?.enabled !== false && (
         <section className="membership-section">
           <div className="container">
-            <MembershipCard membership={membership} />
+            <MembershipCard membership={membership} cadRate={cadRate} isActiveMember={isActiveMember} expiresAt={profile?.membership_expires_at} />
           </div>
         </section>
       )}
@@ -482,7 +613,7 @@ export default function Home() {
           </Reveal>
 
           <Reveal as="div" className="category-cards-grid" delay={0.1}>
-            {CATEGORY_META.map((cat) => (
+            {(categoryCards || CATEGORY_META).map((cat) => (
               <div key={cat.slug} className="category-card-col">
                 <Link href={`/shop?category=${cat.slug}`} className={`cat-banner-card cat-theme-${cat.theme}`}>
                   <div
@@ -520,7 +651,7 @@ export default function Home() {
                 <circle cx="19" cy="21" r="1"></circle>
                 <path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"></path>
               </svg>
-              <span>Browse Peptides</span>
+              <span>See All Categories</span>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                 <line x1="5" y1="12" x2="19" y2="12"></line>
                 <polyline points="12 5 19 12 12 19"></polyline>
@@ -565,7 +696,7 @@ export default function Home() {
               <div className="featured-desktop-grid">
                 {featured.map((p) => (
                   <div key={p.id} className="featured-grid-item">
-                    <ProductCard product={p} />
+                    <ProductCard product={p} cadRate={cadRate} />
                   </div>
                 ))}
               </div>
@@ -594,7 +725,7 @@ export default function Home() {
                         transition={{ duration: 0.25 }}
                         className="featured-mobile-card-wrap"
                       >
-                        <ProductCard product={featured[carouselIndex]} />
+                        <ProductCard product={featured[carouselIndex]} cadRate={cadRate} />
                       </motion.div>
                     )}
                   </AnimatePresence>
@@ -657,21 +788,21 @@ export default function Home() {
             </div>
             <div className="accent-right">
               <span className="accent-line" />
-              <span className="accent-brand">DRAGO PHARMA</span>
+              <span className="accent-brand">The Pep Shop</span>
             </div>
           </div>
         </div>
       </section>
 
 
-       {/* Why Drago Pharma Section */}
+       {/* Why The Pep Shop Section */}
       <section className="why-drago-section">
         <div className="why-drago-overlay" />
         <div className="container why-drago-inner">
           <Reveal as="div" className="why-drago-head">
             <div className="why-drago-eyebrow-wrap">
               <span className="why-drago-eyebrow-line" />
-              <span className="why-drago-eyebrow-text">WHY DRAGO PHARMA</span>
+              <span className="why-drago-eyebrow-text">Why The Pep Shop</span>
               <span className="why-drago-eyebrow-line" />
             </div>
             <h2 className="why-drago-title">
@@ -683,7 +814,7 @@ export default function Home() {
           </Reveal>
 
           <Reveal as="div" className="why-drago-grid" delay={0.1}>
-            {WHY_US_CARDS.map((card) => (
+            {whyCards.map((card) => (
               <motion.div
                 key={card.num}
                 whileHover={{ y: -6, transition: { duration: 0.25 } }}

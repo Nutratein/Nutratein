@@ -7,21 +7,29 @@ import { useCart } from '@/context/CartContext';
 import { useWishlist } from '@/context/WishlistContext';
 import { ShoppingCart, Check } from 'lucide-react';
 
-export default function ProductCard({ product }) {
+export default function ProductCard({ product, cadRate = 1.35 }) {
   const { addItem } = useCart();
   const { isInWishlist, toggleWishlist } = useWishlist();
   const [addedAnim, setAddedAnim] = useState(false);
   const isWishlisted = isInWishlist(product.id);
 
   const imageUrl = product.image_url || product.image || '/images/bpc-157-300x300.webp';
-  const priceFormatted = Number(product.price || 0).toFixed(2);
+  const variants = product.product_variants || [];
+  const cheapestVariant = variants.length > 0
+    ? variants.slice().sort((a, b) => Number(a.price) - Number(b.price))[0]
+    : null;
+  const displayPrice = cheapestVariant ? Number(cheapestVariant.price) : Number(product.price || 0);
+  const priceFormatted = displayPrice.toFixed(2);
+  const cadPriceFormatted = (displayPrice * cadRate).toFixed(2);
+  const showFrom = variants.length > 1;
   const rating = Number(product.rating || 0);
   const reviewsCount = Number(product.reviews_count || 0);
 
   const handleAddToCart = (e) => {
     e.preventDefault();
     e.stopPropagation();
-    addItem(product);
+    const defaultVariant = variants.find((v) => v.is_default) || cheapestVariant;
+    addItem(product, 1, defaultVariant);
     setAddedAnim(true);
     setTimeout(() => setAddedAnim(false), 1200);
   };
@@ -107,7 +115,11 @@ export default function ProductCard({ product }) {
         {/* Price & Add to Cart (Icon Only) */}
         <div className="shop-card-action-row">
           <div className="shop-card-price-box">
-            <span className="shop-card-price">${priceFormatted}</span>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: 5 }}>
+              {showFrom && <span className="shop-card-price-from">From</span>}
+              <span className="shop-card-price">${priceFormatted}</span>
+            </div>
+            <span className="shop-card-price-cad">≈ C${cadPriceFormatted}</span>
           </div>
           <motion.button
             whileHover={{ scale: 1.08 }}

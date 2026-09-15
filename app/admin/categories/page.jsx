@@ -33,6 +33,9 @@ export default function AdminCategories() {
   const [editingCat, setEditingCat] = useState(null);
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
+  const [imageUrl, setImageUrl] = useState('');
+  const [showOnHomepage, setShowOnHomepage] = useState(true);
+  const [uploading, setUploading] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -71,6 +74,8 @@ export default function AdminCategories() {
     setEditingCat(null);
     setName('');
     setDescription('');
+    setImageUrl('');
+    setShowOnHomepage(true);
     setShowDrawer(true);
   }
 
@@ -78,7 +83,29 @@ export default function AdminCategories() {
     setEditingCat(cat);
     setName(cat.name);
     setDescription(cat.description || '');
+    setImageUrl(cat.image_url || '');
+    setShowOnHomepage(cat.show_on_homepage !== false);
     setShowDrawer(true);
+  }
+
+  async function handleImageUpload(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    try {
+      const body = new FormData();
+      body.append('file', file);
+      const res = await fetch('/api/upload', { method: 'POST', body });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Upload failed.');
+      setImageUrl(data.url);
+      showToast('Image uploaded successfully!');
+    } catch (err) {
+      showToast(err.message || 'Upload error');
+    } finally {
+      setUploading(false);
+      e.target.value = '';
+    }
   }
 
   async function handleSave(e) {
@@ -93,6 +120,8 @@ export default function AdminCategories() {
         name: name.trim(),
         slug,
         description: description.trim() || null,
+        image_url: imageUrl.trim() || null,
+        show_on_homepage: showOnHomepage,
       };
 
       const query = editingCat
@@ -106,12 +135,32 @@ export default function AdminCategories() {
       setShowDrawer(false);
       setName('');
       setDescription('');
+      setImageUrl('');
+      setShowOnHomepage(true);
       setEditingCat(null);
       await load();
     } catch (err) {
       setError(err.message || 'Failed to save category.');
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function toggleShowOnHomepage(cat) {
+    const nextVal = !cat.show_on_homepage;
+    setCategories((prev) =>
+      prev.map((c) => (c.id === cat.id ? { ...c, show_on_homepage: nextVal } : c))
+    );
+    try {
+      const { error: err } = await supabase
+        .from('categories')
+        .update({ show_on_homepage: nextVal })
+        .eq('id', cat.id);
+      if (err) throw err;
+      showToast(nextVal ? `"${cat.name}" will now show on Homepage.` : `"${cat.name}" hidden from Homepage.`);
+    } catch (err) {
+      showToast('Failed to update homepage visibility.');
+      await load();
     }
   }
 
@@ -259,6 +308,7 @@ export default function AdminCategories() {
                   <th>Category</th>
                   <th>URL Filter Slug</th>
                   <th>Description</th>
+                  <th>Homepage</th>
                   <th style={{ textAlign: 'right' }}>Actions</th>
                 </tr>
               </thead>
@@ -267,20 +317,28 @@ export default function AdminCategories() {
                   <tr key={c.id}>
                     <td>
                       <div style={{ fontWeight: 700, display: 'flex', alignItems: 'center', gap: 10 }}>
-                        <div
-                          style={{
-                            width: 32,
-                            height: 32,
-                            borderRadius: 8,
-                            background: 'rgba(200, 16, 46, 0.08)',
-                            color: 'var(--color-brand)',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                          }}
-                        >
-                          <Tags size={16} />
-                        </div>
+                        {c.image_url ? (
+                          <img
+                            src={c.image_url}
+                            alt=""
+                            style={{ width: 32, height: 32, borderRadius: 8, objectFit: 'cover' }}
+                          />
+                        ) : (
+                          <div
+                            style={{
+                              width: 32,
+                              height: 32,
+                              borderRadius: 8,
+                              background: 'rgba(200, 16, 46, 0.08)',
+                              color: 'var(--color-brand)',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                            }}
+                          >
+                            <Tags size={16} />
+                          </div>
+                        )}
                         <span>{c.name}</span>
                       </div>
                     </td>
@@ -293,6 +351,31 @@ export default function AdminCategories() {
 
                     <td style={{ color: '#a8adb4', fontSize: 13, maxWidth: 300, whiteSpace: 'normal' }}>
                       {c.description || <span style={{ color: '#94a3b8' }}>— No description —</span>}
+                    </td>
+
+                    <td>
+                      <button
+                        type="button"
+                        onClick={() => toggleShowOnHomepage(c)}
+                        style={{
+                          border: 'none',
+                          background: c.show_on_homepage ? 'rgba(52,211,153,0.15)' : '#232830',
+                          color: c.show_on_homepage ? '#34d399' : '#a8adb4',
+                          padding: '4px 10px',
+                          borderRadius: 9999,
+                          fontSize: 11.5,
+                          fontWeight: 700,
+                          cursor: 'pointer',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: 4,
+                          transition: 'all 0.15s ease',
+                          whiteSpace: 'nowrap',
+                        }}
+                        title="Click to toggle visibility on the homepage 'Explore Our Range' section"
+                      >
+                        {c.show_on_homepage ? '✓ Visible' : 'Hidden'}
+                      </button>
                     </td>
 
                     <td style={{ textAlign: 'right' }}>
@@ -351,6 +434,9 @@ export default function AdminCategories() {
                 borderRadius: 20,
                 maxWidth: 540,
                 width: '100%',
+                maxHeight: '90vh',
+                display: 'flex',
+                flexDirection: 'column',
                 boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.55)',
                 overflow: 'hidden',
               }}
@@ -363,6 +449,7 @@ export default function AdminCategories() {
                   justifyContent: 'space-between',
                   alignItems: 'center',
                   background: '#171b23',
+                  flexShrink: 0,
                 }}
               >
                 <div>
@@ -381,7 +468,7 @@ export default function AdminCategories() {
                 </button>
               </div>
 
-              <form onSubmit={handleSave} style={{ padding: '24px' }}>
+              <form onSubmit={handleSave} style={{ padding: '24px', overflowY: 'auto', flex: 1 }}>
                 {error && (
                   <div style={{ background: 'rgba(220,38,38,0.12)', color: '#dc2626', padding: '10px 14px', borderRadius: 8, marginBottom: 16, fontSize: 13 }}>
                     {error}
@@ -431,6 +518,52 @@ export default function AdminCategories() {
                     placeholder="Explain what peptides or products belong in this category..."
                     style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1.5px solid var(--color-border)', fontSize: 13.5, fontFamily: 'inherit' }}
                   />
+                </div>
+
+                <div style={{ marginBottom: 20 }}>
+                  <label style={{ display: 'block', fontSize: 12.5, fontWeight: 700, marginBottom: 6 }}>
+                    Category Banner Image (Optional)
+                  </label>
+                  <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleImageUpload}
+                      disabled={uploading}
+                      style={{ fontSize: 12 }}
+                    />
+                    {uploading && <span style={{ fontSize: 12, color: 'var(--color-brand)' }}>Uploading...</span>}
+                  </div>
+                  <input
+                    value={imageUrl}
+                    onChange={(e) => setImageUrl(e.target.value)}
+                    placeholder="Or image URL (e.g. /images/cat-fat-loss.jpg)"
+                    style={{ width: '100%', marginTop: 8, padding: '8px 12px', borderRadius: 8, border: '1.5px solid var(--color-border)', fontSize: 13 }}
+                  />
+                  {imageUrl && (
+                    <div style={{ marginTop: 10, maxWidth: 360, aspectRatio: '16 / 9', borderRadius: 10, overflow: 'hidden', background: '#171b23' }}>
+                      <img src={imageUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    </div>
+                  )}
+                  <p style={{ fontSize: 11.5, color: '#94a3b8', margin: '6px 0 0' }}>
+                    Used as the banner background on the homepage &quot;Explore Our Range&quot; cards. Recommended
+                    ratio: <strong>16:9 landscape</strong> (e.g. 1200×675px) — it&apos;s cropped to fill a wide,
+                    short banner card, so keep the main subject centered.
+                  </p>
+                </div>
+
+                <div style={{ marginBottom: 20 }}>
+                  <label className="checkbox-label" style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <input
+                      type="checkbox"
+                      checked={showOnHomepage}
+                      onChange={(e) => setShowOnHomepage(e.target.checked)}
+                    />
+                    <span style={{ fontWeight: 650 }}>Show this category on the Homepage</span>
+                  </label>
+                  <p style={{ fontSize: 11.5, color: '#94a3b8', margin: '6px 0 0' }}>
+                    Turn off to keep this category available in the Shop filters without featuring it on the homepage banners.
+                  </p>
                 </div>
 
                 <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>

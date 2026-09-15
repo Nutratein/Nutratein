@@ -1,16 +1,17 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useWishlist } from '@/context/WishlistContext';
 import { useCart } from '@/context/CartContext';
+import { getCadRate } from '@/lib/wallet';
 import ProductCard from '@/components/ProductCard.jsx';
-import { 
-  Heart, 
-  ShoppingCart, 
-  Trash2, 
-  ArrowRight, 
+import {
+  Heart,
+  ShoppingCart,
+  Trash2,
+  ArrowRight,
   ChevronRight,
   Check
 } from 'lucide-react';
@@ -19,6 +20,11 @@ export default function WishlistPage() {
   const { wishlist, clearWishlist } = useWishlist();
   const { addItem } = useCart();
   const [addingAll, setAddingAll] = useState(false);
+  const [cadRate, setCadRate] = useState(1.35);
+
+  useEffect(() => {
+    getCadRate().then(setCadRate);
+  }, []);
 
   const handleAddAllToCart = () => {
     setAddingAll(true);
@@ -110,7 +116,7 @@ export default function WishlistPage() {
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 0.9, transition: { duration: 0.2 } }}
                 >
-                  <ProductCard product={item} />
+                  <ProductCard product={item} cadRate={cadRate} />
                 </motion.div>
               ))}
             </AnimatePresence>

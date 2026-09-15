@@ -1,20 +1,22 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useCart, resolveProductImage } from '@/context/CartContext';
 import { useAuth } from '@/context/AuthContext';
 import { supabase } from '@/lib/supabaseClient';
 import ProtectedRoute from '@/components/ProtectedRoute.jsx';
-import { 
-  Lock, 
-  ShieldCheck, 
-  Truck, 
-  ChevronRight, 
-  Check, 
-  CreditCard, 
-  ArrowRight, 
+import { getWallet, getWalletSettings, payOrderWithWallet } from '@/lib/wallet';
+import { getShippingSettings, DEFAULT_SHIPPING_SETTINGS } from '@/lib/shippingSettings';
+import { recordPromoCodeUse } from '@/lib/promoCodes';
+import {
+  Lock,
+  ShieldCheck,
+  Truck,
+  ChevronRight,
+  Check,
+  ArrowRight,
   ShoppingBag,
   User,
   Mail,
@@ -22,7 +24,8 @@ import {
   MapPin,
   Building,
   FileText,
-  AlertCircle
+  AlertCircle,
+  Wallet
 } from 'lucide-react';
 
 const EMPTY_FORM = {
@@ -39,20 +42,37 @@ const EMPTY_FORM = {
 };
 
 function CheckoutContent() {
-  const { items, subtotal, clearCart, itemCount } = useCart();
+  const { items, subtotal, clearCart, itemCount, appliedPromo } = useCart();
   const { user } = useAuth();
   const router = useRouter();
 
   const [form, setForm] = useState({ ...EMPTY_FORM, email: user?.email || '', fullName: user?.user_metadata?.full_name || '' });
   const [shippingMethod, setShippingMethod] = useState('express'); // 'express' | 'cold-chain'
-  const [paymentMethod, setPaymentMethod] = useState('card'); // 'card' | 'wire'
+  const [paymentMethod, setPaymentMethod] = useState('wallet_usd'); // 'wallet_usd' | 'wallet_cad'
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
+  const [wallet, setWallet] = useState({ usd_balance: 0, cad_balance: 0 });
+  const [cadRate, setCadRate] = useState(1.35);
 
-  const isFreeShipping = subtotal >= 100;
-  const expressFee = isFreeShipping ? 0 : 9.99;
-  const shippingFee = shippingMethod === 'cold-chain' ? (isFreeShipping ? 6.99 : 14.99) : expressFee;
-  const finalTotal = Math.max(0, subtotal + shippingFee);
+  const [shippingSettings, setShippingSettings] = useState(DEFAULT_SHIPPING_SETTINGS);
+
+  useEffect(() => {
+    if (!user?.id) return;
+    getWallet(user.id).then(setWallet);
+    getWalletSettings().then((s) => setCadRate(Number(s.cad_to_usd_rate) || 1.35));
+    getShippingSettings().then(setShippingSettings);
+  }, [user?.id]);
+
+  const isFreeShipping = subtotal >= shippingSettings.free_shipping_threshold;
+  const expressFee = isFreeShipping ? 0 : shippingSettings.standard_fee;
+  const shippingFee = shippingMethod === 'cold-chain'
+    ? (isFreeShipping ? shippingSettings.cold_chain_fee_discounted : shippingSettings.cold_chain_fee)
+    : expressFee;
+  const discountAmount = appliedPromo ? Number((subtotal * appliedPromo.discountPercent).toFixed(2)) : 0;
+  const finalTotal = Math.max(0, subtotal - discountAmount + shippingFee);
+  const cadRequired = Number((finalTotal * cadRate).toFixed(2));
+  const canPayWalletUsd = Number(wallet.usd_balance) >= finalTotal;
+  const canPayWalletCad = Number(wallet.cad_balance) >= cadRequired;
 
   if (items.length === 0) {
     return (
@@ -89,7 +109,17 @@ function CheckoutContent() {
       return;
     }
 
+    if (paymentMethod === 'wallet_usd' && !canPayWalletUsd) {
+      setError('Insufficient USD wallet balance. Please add money to your wallet or choose another payment method.');
+      return;
+    }
+    if (paymentMethod === 'wallet_cad' && !canPayWalletCad) {
+      setError('Insufficient CAD wallet balance. Please add money to your wallet or choose another payment method.');
+      return;
+    }
+
     setSubmitting(true);
+    let createdOrder = null;
     try {
       const { data: order, error: orderError } = await supabase
         .from('orders')
@@ -99,6 +129,8 @@ function CheckoutContent() {
           full_name: form.fullName,
           phone: form.phone,
           total: Number(finalTotal.toFixed(2)),
+          promo_code: appliedPromo?.code || null,
+          discount_amount: discountAmount,
           notes: `${form.notes || ''} [Method: ${paymentMethod.toUpperCase()}, Shipping: ${shippingMethod}]`.trim(),
           shipping_address: {
             address1: form.address1,
@@ -115,25 +147,48 @@ function CheckoutContent() {
         .single();
 
       if (orderError) throw orderError;
+      createdOrder = order;
 
-      // Ensure product_id is a valid UUID or null if static alphanumeric string
+      // Ensure product_id/variant_id are valid UUIDs or null if static alphanumeric strings
       const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-      const orderItems = items.map((item) => ({
-        order_id: order.id,
-        product_id: uuidRegex.test(item.id) ? item.id : null,
-        product_name: item.name,
-        unit_price: item.price,
-        quantity: item.quantity,
-        line_total: Number((item.price * item.quantity).toFixed(2)),
-      }));
+      const orderItems = items.map((item) => {
+        const productRef = item.product_id || item.id;
+        return {
+          order_id: order.id,
+          product_id: uuidRegex.test(productRef) ? productRef : null,
+          product_name: item.name,
+          variant_id: item.variant_id && uuidRegex.test(item.variant_id) ? item.variant_id : null,
+          variant_label: item.variant_label || null,
+          unit_price: item.price,
+          quantity: item.quantity,
+          line_total: Number((item.price * item.quantity).toFixed(2)),
+        };
+      });
 
       const { error: itemsError } = await supabase.from('order_items').insert(orderItems);
       if (itemsError) throw itemsError;
 
+      if (paymentMethod === 'wallet_usd' || paymentMethod === 'wallet_cad') {
+        const currency = paymentMethod === 'wallet_usd' ? 'usd' : 'cad';
+        const { error: payError } = await payOrderWithWallet(order.id, currency);
+        if (payError) throw payError;
+      }
+
+      if (appliedPromo?.code) {
+        recordPromoCodeUse(appliedPromo.code);
+      }
+
       clearCart();
       router.push(`/order-confirmation/${order.id}`);
     } catch (err) {
-      setError(err.message || 'Something went wrong placing your order. Please try again.');
+      if (createdOrder && (paymentMethod === 'wallet_usd' || paymentMethod === 'wallet_cad')) {
+        setError(
+          `Order #${createdOrder.id.slice(0, 8).toUpperCase()} was created but wallet payment failed (${err.message || 'insufficient balance'}). ` +
+          `Please contact support to complete payment, or try again with a different method next time.`
+        );
+      } else {
+        setError(err.message || 'Something went wrong placing your order. Please try again.');
+      }
     } finally {
       setSubmitting(false);
     }
@@ -357,7 +412,7 @@ function CheckoutContent() {
                       <span>2–3 Business Days • Discreet Thermal Pouch</span>
                     </div>
                     <div className="shipping-option-price">
-                      {isFreeShipping ? <span style={{ color: '#34d399' }}>FREE</span> : '$9.99'}
+                      {isFreeShipping ? <span style={{ color: '#34d399' }}>FREE</span> : `$${shippingSettings.standard_fee.toFixed(2)}`}
                     </div>
                   </div>
 
@@ -371,7 +426,7 @@ function CheckoutContent() {
                       <span>1–2 Days • Dry ice / active temp log</span>
                     </div>
                     <div className="shipping-option-price">
-                      {isFreeShipping ? '$6.99' : '$14.99'}
+                      {isFreeShipping ? `$${shippingSettings.cold_chain_fee_discounted.toFixed(2)}` : `$${shippingSettings.cold_chain_fee.toFixed(2)}`}
                     </div>
                   </div>
                 </div>
@@ -385,28 +440,33 @@ function CheckoutContent() {
                 </div>
 
                 <div className="payment-methods-grid">
-                  <div 
-                    className={`payment-method-card ${paymentMethod === 'card' ? 'selected' : ''}`}
-                    onClick={() => setPaymentMethod('card')}
+                  <div
+                    className={`payment-method-card ${paymentMethod === 'wallet_usd' ? 'selected' : ''} ${!canPayWalletUsd ? 'disabled' : ''}`}
+                    onClick={() => canPayWalletUsd && setPaymentMethod('wallet_usd')}
                   >
                     <div className="shipping-option-radio" />
-                    <CreditCard size={20} color="#f1f5f9" />
+                    <Wallet size={20} color="#f1f5f9" />
                     <div>
-                      <strong style={{ fontSize: 14, display: 'block', color: '#f1f5f9' }}>Credit / Debit Card</strong>
-                      <span style={{ fontSize: 12, color: '#a8adb4' }}>Discreet invoice link provided immediately on next screen</span>
+                      <strong style={{ fontSize: 14, display: 'block', color: '#f1f5f9' }}>Pay with USD Wallet</strong>
+                      <span style={{ fontSize: 12, color: canPayWalletUsd ? '#a8adb4' : '#dc2626' }}>
+                        Balance: ${Number(wallet.usd_balance).toFixed(2)}
+                        {!canPayWalletUsd ? ' — insufficient for this order' : ' — instant confirmation'}
+                      </span>
                     </div>
                   </div>
 
-
                   <div
-                    className={`payment-method-card ${paymentMethod === 'wire' ? 'selected' : ''}`}
-                    onClick={() => setPaymentMethod('wire')}
+                    className={`payment-method-card ${paymentMethod === 'wallet_cad' ? 'selected' : ''} ${!canPayWalletCad ? 'disabled' : ''}`}
+                    onClick={() => canPayWalletCad && setPaymentMethod('wallet_cad')}
                   >
                     <div className="shipping-option-radio" />
-                    <Building size={20} color="#f1f5f9" />
+                    <Wallet size={20} color="#f1f5f9" />
                     <div>
-                      <strong style={{ fontSize: 14, display: 'block', color: '#f1f5f9' }}>Institutional Bank Wire / ACH / Zelle</strong>
-                      <span style={{ fontSize: 12, color: '#a8adb4' }}>Wire instructions will be issued on the confirmation page</span>
+                      <strong style={{ fontSize: 14, display: 'block', color: '#f1f5f9' }}>Pay with CAD Wallet</strong>
+                      <span style={{ fontSize: 12, color: canPayWalletCad ? '#a8adb4' : '#dc2626' }}>
+                        Balance: C${Number(wallet.cad_balance).toFixed(2)} (needs C${cadRequired.toFixed(2)})
+                        {!canPayWalletCad ? ' — insufficient for this order' : ' — instant confirmation'}
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -470,6 +530,13 @@ function CheckoutContent() {
                 </div>
 
 
+                {appliedPromo && (
+                  <div className="breakdown-row discount">
+                    <span>Coupon ({appliedPromo.code})</span>
+                    <span>-${discountAmount.toFixed(2)}</span>
+                  </div>
+                )}
+
                 <div className="breakdown-row">
                   <span>Shipping ({shippingMethod === 'cold-chain' ? 'Cold-Chain' : 'Express'})</span>
                   <span>{shippingFee === 0 ? <span className="free-shipping-tag">FREE</span> : `$${shippingFee.toFixed(2)}`}</span>
@@ -481,24 +548,40 @@ function CheckoutContent() {
                   <span>Total Amount</span>
                   <span className="total-price">${finalTotal.toFixed(2)}</span>
                 </div>
-                <div className="currency-notice">All prices in USD. No hidden handling fees.</div>
+                <div className="currency-notice">≈ C${cadRequired.toFixed(2)} · All prices in USD. No hidden handling fees.</div>
               </div>
 
+              {!canPayWalletUsd && !canPayWalletCad ? (
+                <div style={{ padding: '14px 16px', background: 'rgba(220,38,38,0.1)', border: '1px solid rgba(220,38,38,0.3)', borderRadius: 12, marginBottom: 12, textAlign: 'center' }}>
+                  <p style={{ margin: '0 0 10px', fontSize: 13.5, color: '#f1f5f9' }}>
+                    Your wallet balance isn&apos;t enough to cover this order yet.
+                  </p>
+                  <Link href="/account?tab=wallet" className="account-btn-primary" style={{ display: 'inline-flex' }}>
+                    Add Money to Wallet
+                  </Link>
+                </div>
+              ) : null}
+
               {/* Submit Order Button */}
-              <button 
-                type="submit" 
+              <button
+                type="submit"
                 form="checkout-form"
-                disabled={submitting}
+                disabled={submitting || (!canPayWalletUsd && !canPayWalletCad)}
                 className="checkout-cta-btn"
-                style={{ width: '100%', border: 'none', cursor: submitting ? 'wait' : 'pointer', opacity: submitting ? 0.7 : 1 }}
+                style={{
+                  width: '100%',
+                  border: 'none',
+                  cursor: submitting || (!canPayWalletUsd && !canPayWalletCad) ? 'not-allowed' : 'pointer',
+                  opacity: submitting || (!canPayWalletUsd && !canPayWalletCad) ? 0.5 : 1,
+                }}
               >
                 <Lock size={17} />
                 <span>{submitting ? 'Placing Order...' : `Confirm & Place Order`}</span>
                 <ArrowRight size={17} />
               </button>
 
-              <Link 
-                href="/cart" 
+              <Link
+                href="/cart"
                 className="btn btn-outline" 
                 style={{ width: '100%', marginTop: 12, borderRadius: 12, fontSize: 13.5, borderColor: 'rgba(255,255,255,0.15)', boxSizing: 'border-box' }}
               >

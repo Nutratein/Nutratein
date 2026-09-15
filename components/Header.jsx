@@ -7,7 +7,7 @@ import { useCart } from '@/context/CartContext';
 import { useAuth } from '@/context/AuthContext';
 import { useWishlist } from '@/context/WishlistContext';
 import CartDrawer from './CartDrawer.jsx';
-import { User, ShoppingCart, Menu, X, Settings, ArrowRight, FlaskConical, Heart } from 'lucide-react';
+import { User, ShoppingCart, Menu, X, Settings, ArrowRight, FlaskConical, Heart, Search } from 'lucide-react';
 
 const NAV_LINKS = [
   { href: '/', label: 'Home', end: true },
@@ -30,8 +30,17 @@ export default function Header() {
   const [cartOpen, setCartOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
   const router = useRouter();
   const pathname = usePathname();
+
+  const handleSearchSubmit = (e) => {
+    e.preventDefault();
+    const q = searchQuery.trim();
+    setSearchOpen(false);
+    router.push(q ? `/shop?search=${encodeURIComponent(q)}` : '/shop');
+  };
 
   useEffect(() => {
     const handleScroll = () => {
@@ -44,6 +53,7 @@ export default function Header() {
   // Close mobile menu on route change
   useEffect(() => {
     setMenuOpen(false);
+    setSearchOpen(false);
   }, [pathname]);
 
   return (
@@ -65,8 +75,8 @@ export default function Header() {
       <header className={`modern-header ${scrolled ? 'is-scrolled' : ''}`}>
         <div className="modern-header-container">
           {/* Brand Logo */}
-          <Link href="/" className="modern-brand" aria-label="Drago Pharma Home">
-            <img src="/images/logo.webp" alt="Drago Pharma" className="brand-img" />
+          <Link href="/" className="modern-brand" aria-label="The Pep Shop Home">
+            <img src="/images/tps-logo.png" alt="The Pep Shop" className="brand-img" />
           </Link>
 
           {/* Desktop Navigation */}
@@ -87,7 +97,33 @@ export default function Header() {
           </nav>
 
           {/* Right Header Actions */}
-          <div className="header-actions">
+          <div className="header-actions" style={{ position: 'relative' }}>
+            <button
+              className="icon-btn"
+              aria-label="Search products"
+              onClick={() => setSearchOpen((prev) => !prev)}
+              title="Search"
+            >
+              {searchOpen ? <X size={20} strokeWidth={2.2} /> : <Search size={20} strokeWidth={2.2} />}
+            </button>
+
+            {searchOpen && (
+              <form onSubmit={handleSearchSubmit} className="header-search-panel">
+                <Search size={16} className="header-search-icon" />
+                <input
+                  type="text"
+                  autoFocus
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search peptides, e.g. BPC-157..."
+                  className="header-search-input"
+                />
+                <button type="submit" className="header-search-submit" aria-label="Search">
+                  <ArrowRight size={16} />
+                </button>
+              </form>
+            )}
+
             {isAdmin && (
               <button
                 className="icon-btn admin-btn"

@@ -320,7 +320,10 @@ export default function OrderConfirmation() {
                           />
                         </div>
                         <div className="conf-item-info">
-                          <div className="conf-item-name">{item.product_name}</div>
+                          <div className="conf-item-name">
+                            {item.product_name}
+                            {item.variant_label && <span style={{ color: 'var(--color-brand)', fontWeight: 650 }}> · {item.variant_label}</span>}
+                          </div>
                           <div className="conf-item-meta">
                             <span className="conf-item-qty">Qty: {item.quantity}</span>
                             <span>•</span>

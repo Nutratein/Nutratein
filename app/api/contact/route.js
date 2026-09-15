@@ -12,8 +12,8 @@ export async function POST(request) {
     }
 
     const { error } = await resend.emails.send({
-      from: `Drago Pharma Website <${process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev'}>`,
-      to: process.env.CONTACT_RECEIVER_EMAIL || 'info@dragopharma.com',
+      from: `The Pep Shop Website <${process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev'}>`,
+      to: process.env.CONTACT_RECEIVER_EMAIL || 'info@thepepshop.com',
       replyTo: email,
       subject: `[Contact Form] ${subject || 'General Inquiry'} — ${name}`,
       html: `

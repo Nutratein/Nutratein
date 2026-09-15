@@ -5,6 +5,17 @@ import { PRODUCTS } from '@/lib/shopData';
 
 const CartContext = createContext(null);
 const STORAGE_KEY = 'dragopharma_cart_v1';
+const PROMO_STORAGE_KEY = 'dragopharma_promo_v1';
+
+function loadPromo() {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = localStorage.getItem(PROMO_STORAGE_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
 
 export function resolveProductImage(product) {
   if (product?.image_url && !product.image_url.includes('placeholder')) {
@@ -42,7 +53,7 @@ function loadCart() {
     const parsed = raw ? JSON.parse(raw) : [];
     return parsed.map((item) => ({
       ...item,
-      image_url: resolveProductImage(item),
+      image_url: item.image_url || resolveProductImage(item),
     }));
   } catch {
     return [];
@@ -52,9 +63,11 @@ function loadCart() {
 export function CartProvider({ children }) {
   const [items, setItems] = useState([]);
   const [hydrated, setHydrated] = useState(false);
+  const [appliedPromo, setAppliedPromoState] = useState(null);
 
   useEffect(() => {
     setItems(loadCart());
+    setAppliedPromoState(loadPromo());
     setHydrated(true);
   }, []);
 
@@ -63,13 +76,28 @@ export function CartProvider({ children }) {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
   }, [items, hydrated]);
 
-  const addItem = (product, quantity = 1) => {
-    const resolvedImage = resolveProductImage(product);
+  useEffect(() => {
+    if (!hydrated) return;
+    if (appliedPromo) {
+      localStorage.setItem(PROMO_STORAGE_KEY, JSON.stringify(appliedPromo));
+    } else {
+      localStorage.removeItem(PROMO_STORAGE_KEY);
+    }
+  }, [appliedPromo, hydrated]);
+
+  const setAppliedPromo = (promo) => setAppliedPromoState(promo);
+  const clearPromo = () => setAppliedPromoState(null);
+
+  const addItem = (product, quantity = 1, variant = null) => {
+    const resolvedImage = variant?.image_url || resolveProductImage(product);
+    const lineId = variant ? `${product.id}::${variant.id}` : product.id;
+    const linePrice = variant ? Number(variant.price) : Number(product.price);
+
     setItems((prev) => {
-      const existing = prev.find((i) => i.id === product.id || (product.name && i.name === product.name));
+      const existing = prev.find((i) => i.id === lineId);
       if (existing) {
         return prev.map((i) =>
-          (i.id === product.id || (product.name && i.name === product.name))
+          i.id === lineId
             ? { ...i, quantity: i.quantity + quantity, image_url: i.image_url || resolvedImage }
             : i
         );
@@ -77,10 +105,13 @@ export function CartProvider({ children }) {
       return [
         ...prev,
         {
-          id: product.id,
+          id: lineId,
+          product_id: product.id,
+          variant_id: variant?.id || null,
+          variant_label: variant?.label || null,
           name: product.name,
           slug: product.slug || '',
-          price: product.price,
+          price: linePrice,
           image_url: resolvedImage,
           quantity,
         },
@@ -98,7 +129,10 @@ export function CartProvider({ children }) {
 
   const removeItem = (id) => setItems((prev) => prev.filter((i) => i.id !== id));
 
-  const clearCart = () => setItems([]);
+  const clearCart = () => {
+    setItems([]);
+    clearPromo();
+  };
 
   const subtotal = useMemo(
     () => items.reduce((sum, i) => sum + i.price * i.quantity, 0),
@@ -110,7 +144,7 @@ export function CartProvider({ children }) {
     [items]
   );
 
-  const value = { items, addItem, updateQuantity, removeItem, clearCart, subtotal, itemCount, hydrated };
+  const value = { items, addItem, updateQuantity, removeItem, clearCart, subtotal, itemCount, hydrated, appliedPromo, setAppliedPromo, clearPromo };
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;
 }

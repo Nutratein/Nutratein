@@ -15,9 +15,12 @@ import {
   ChevronUp, 
   RotateCcw,
   Sparkles,
-  ArrowRight
+  ArrowRight,
+  Search
 } from 'lucide-react';
 import { supabase } from '@/lib/supabaseClient';
+import { getSiteContent } from '@/lib/siteContent';
+import { getCadRate } from '@/lib/wallet';
 import { CATEGORIES, PRODUCTS as STATIC_PRODUCTS } from '@/lib/shopData';
 import ProductCard from '@/components/ProductCard.jsx';
 
@@ -33,16 +36,27 @@ function ShopContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const initialCategory = searchParams.get('category') || 'all';
+  const initialSearch = searchParams.get('search') || '';
 
   // Products state (starts with static catalog, then enhances from Supabase if connected)
   const [productsList, setProductsList] = useState(STATIC_PRODUCTS);
   const [categoriesList, setCategoriesList] = useState(CATEGORIES);
   const [activeCategory, setActiveCategory] = useState(initialCategory);
+  const [searchQuery, setSearchQuery] = useState(initialSearch);
   const [maxPrice, setMaxPrice] = useState(300);
   const [selectedPurity, setSelectedPurity] = useState([]);
   const [selectedAvailability, setSelectedAvailability] = useState([]);
   const [sortBy, setSortBy] = useState('featured');
   const [mobileFilterOpen, setMobileFilterOpen] = useState(false);
+  const [cadRate, setCadRate] = useState(1.35);
+  const [heroProductImage, setHeroProductImage] = useState('/images/hero_img/hero_product_img.png');
+
+  useEffect(() => {
+    getCadRate().then(setCadRate);
+    getSiteContent('home', {}).then((value) => {
+      if (value?.hero?.product_image_url) setHeroProductImage(value.hero.product_image_url);
+    });
+  }, []);
 
   // Accordion open/close states
   const [accordions, setAccordions] = useState({
@@ -57,10 +71,11 @@ function ShopContent() {
     setAccordions((prev) => ({ ...prev, [section]: !prev[section] }));
   };
 
-  // Sync category with URL
+  // Sync category & search query with URL
   useEffect(() => {
     const cat = searchParams.get('category') || 'all';
     setActiveCategory(cat);
+    setSearchQuery(searchParams.get('search') || '');
   }, [searchParams]);
 
   // Attempt to fetch latest catalog and categories from Supabase
@@ -69,7 +84,7 @@ function ShopContent() {
     async function fetchSupabaseProducts() {
       try {
         const [{ data, error }, { data: catData, error: catErr }] = await Promise.all([
-          supabase.from('products').select('*, categories(slug, name)').eq('is_active', true),
+          supabase.from('products').select('*, categories(slug, name), product_variants(id, price, stock, is_default)').eq('is_active', true),
           supabase.from('categories').select('*').order('name'),
         ]);
 
@@ -160,6 +175,15 @@ function ShopContent() {
           if (selectedAvailability.includes('in-stock') && !product.in_stock) return false;
           if (selectedAvailability.includes('out-of-stock') && product.in_stock) return false;
         }
+        // Text search (name + short description)
+        if (searchQuery.trim()) {
+          const q = searchQuery.trim().toLowerCase();
+          const matches =
+            product.name?.toLowerCase().includes(q) ||
+            product.short_desc?.toLowerCase().includes(q) ||
+            product.category_name?.toLowerCase().includes(q);
+          if (!matches) return false;
+        }
         return true;
       })
       .sort((a, b) => {
@@ -170,7 +194,7 @@ function ShopContent() {
         // default 'featured'
         return (b.featured ? 1 : 0) - (a.featured ? 1 : 0);
       });
-  }, [productsList, activeCategory, maxPrice, selectedPurity, selectedAvailability, sortBy]);
+  }, [productsList, activeCategory, maxPrice, selectedPurity, selectedAvailability, sortBy, searchQuery]);
 
   return (
     <div className="shop-page-wrapper">
@@ -218,8 +242,8 @@ function ShopContent() {
           <div className="shop-hero-visual">
             <div className="shop-hero-art-wrap">
               <img
-                src="/images/hero_img/hero_product_img.png"
-                alt="Drago Pharma Research Peptides Showcase"
+                src={heroProductImage}
+                alt="The Pep Shop Research Peptides Showcase"
                 className="shop-hero-img"
               />
               <div className="shop-hero-tagline">
@@ -264,6 +288,38 @@ function ShopContent() {
           </div>
 
           <div className="shop-controls-right">
+            {/* Search Box */}
+            <div className="shop-search-box">
+              <Search size={15} />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setSearchQuery(val);
+                  const params = new URLSearchParams(searchParams.toString());
+                  if (val.trim()) params.set('search', val); else params.delete('search');
+                  router.replace(params.toString() ? `/shop?${params.toString()}` : '/shop', { scroll: false });
+                }}
+                placeholder="Search products..."
+              />
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSearchQuery('');
+                    const params = new URLSearchParams(searchParams.toString());
+                    params.delete('search');
+                    router.replace(params.toString() ? `/shop?${params.toString()}` : '/shop', { scroll: false });
+                  }}
+                  aria-label="Clear search"
+                  className="shop-search-clear"
+                >
+                  <X size={13} />
+                </button>
+              )}
+            </div>
+
             {/* Mobile Filter Trigger Button */}
             <button
               type="button"
@@ -541,7 +597,7 @@ function ShopContent() {
                       transition={{ duration: 0.25 }}
                       layout
                     >
-                      <ProductCard product={product} />
+                      <ProductCard product={product} cadRate={cadRate} />
                     </motion.div>
                   ))}
                 </AnimatePresence>

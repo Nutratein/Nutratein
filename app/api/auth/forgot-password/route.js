@@ -52,19 +52,19 @@ export async function POST(request) {
     const origin = request.nextUrl.origin;
     const resetLink = `${origin}/reset-password?token=${token}&email=${encodeURIComponent(normalizedEmail)}`;
 
-    const fromName = process.env.RESEND_FROM_NAME || 'Drago Pharma';
+    const fromName = process.env.RESEND_FROM_NAME || 'The Pep Shop';
     const fromEmail = process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev';
 
     await resend.emails.send({
       from: `${fromName} <${fromEmail}>`,
       to: normalizedEmail,
-      subject: 'Reset your Drago Pharma password',
+      subject: 'Reset your Pep Shop password',
       html: `
         <div style="font-family: sans-serif; background:#0a0c10; padding: 24px 16px; color:#f1f5f9; box-sizing:border-box;">
           <div style="max-width: 440px; width:100%; margin: 0 auto; background:#12151b; border:1px solid rgba(255,255,255,0.08); border-radius: 14px; padding: 28px 20px; text-align:center; box-sizing:border-box;">
             <h2 style="margin: 0 0 8px; font-size: 20px; color:#f1f5f9;">Reset your password</h2>
             <p style="margin: 0 0 24px; font-size: 14px; color:#a8adb4;">
-              We received a request to reset your Drago Pharma account password. This link expires in ${RESET_TTL_MINUTES} minutes.
+              We received a request to reset your Pep Shop account password. This link expires in ${RESET_TTL_MINUTES} minutes.
             </p>
             <a href="${resetLink}" style="display:inline-block; padding: 14px 32px; background:#e0173d; color:#ffffff; text-decoration:none; font-weight:700; font-size:15px; border-radius: 10px;">
               Reset Password

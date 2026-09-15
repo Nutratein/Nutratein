@@ -59,6 +59,7 @@ export function AuthProvider({ children }) {
     signUp,
     signIn,
     signOut,
+    refreshProfile: () => loadProfile(session?.user?.id),
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

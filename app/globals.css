@@ -27,6 +27,35 @@
 html { scroll-behavior: smooth; }
 html, body, #root { min-height: 100vh; }
 
+/* ---------- Themed Scrollbar (dark surface + brand accent) ---------- */
+html {
+  scrollbar-color: var(--color-brand-dark) var(--color-paper);
+  scrollbar-width: thin;
+}
+
+::-webkit-scrollbar {
+  width: 12px;
+  height: 12px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-paper);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-brand-dark);
+  border-radius: 999px;
+  border: 2px solid var(--color-paper);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-brand);
+}
+
+::-webkit-scrollbar-corner {
+  background: var(--color-paper);
+}
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.001ms !important;
@@ -48,6 +77,13 @@ body {
   background: var(--color-paper);
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
+}
+
+/* Clip horizontal overflow from page content only — NOT on html/body,
+   since overflow other than 'visible' on those breaks position:sticky
+   for the Header (a direct child of body). */
+main {
+  overflow-x: hidden;
 }
 
 h1, h2, h3, h4, .font-serif, .font-heading {
@@ -200,7 +236,7 @@ img { max-width: 100%; display: block; }
 }
 
 .brand-img, .brand img {
-  height: 38px;
+  height: 52px;
   width: auto;
   object-fit: contain;
 }
@@ -277,6 +313,56 @@ img { max-width: 100%; display: block; }
   cursor: pointer;
   transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
   padding: 0;
+}
+
+/* Header search dropdown */
+.header-search-panel {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: min(320px, 90vw);
+  padding: 8px 12px;
+  background: var(--color-surface, #12151b);
+  border: 1px solid var(--color-border, rgba(255,255,255,0.1));
+  border-radius: 14px;
+  box-shadow: 0 12px 32px -8px rgba(0, 0, 0, 0.6);
+  z-index: 60;
+}
+
+.header-search-icon {
+  color: #8b909a;
+  flex-shrink: 0;
+}
+
+.header-search-input {
+  flex: 1;
+  min-width: 0;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: var(--color-ink, #f1f5f9);
+  font-size: 14px;
+}
+
+.header-search-input::placeholder {
+  color: #6b7078;
+}
+
+.header-search-submit {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+  border: none;
+  background: var(--color-brand, #c8102e);
+  color: #fff;
+  cursor: pointer;
+  flex-shrink: 0;
 }
 
 .icon-btn:hover {
@@ -463,7 +549,7 @@ img { max-width: 100%; display: block; }
     padding: 0 18px;
   }
   .brand-img, .brand img {
-    height: 34px;
+    height: 44px;
   }
   .icon-btn {
     width: 38px;
@@ -1530,6 +1616,10 @@ img { max-width: 100%; display: block; }
   background: rgba(255, 255, 255, 0.15);
 }
 
+.featured-bottom-accents .accent-brand {
+  text-transform: uppercase;
+}
+
 @media (max-width: 1024px) {
   .featured-products-grid {
     grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
@@ -1675,9 +1765,8 @@ img { max-width: 100%; display: block; }
 }
 
 .footer-logo-img {
-  height: 38px;
+  height: 52px;
   width: auto;
-  filter: brightness(0) invert(1);
   opacity: 0.95;
   transition: opacity 0.2s ease;
 }
@@ -1721,6 +1810,32 @@ img { max-width: 100%; display: block; }
 
 .footer-contact-row a:hover {
   color: #ff4d6d;
+}
+
+.footer-social-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 14px 0;
+}
+
+.footer-social-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--color-border, rgba(255,255,255,0.1));
+  color: #cbd2d9;
+  transition: all 0.2s ease;
+}
+
+.footer-social-icon:hover {
+  background: var(--color-brand, #c8102e);
+  border-color: var(--color-brand, #c8102e);
+  color: #fff;
 }
 
 .footer-status-pill {
@@ -2662,7 +2777,7 @@ input::placeholder, textarea::placeholder { color: #6b7280; }
   }
 }
 
-/* ---------- Why Drago Pharma / Serious Researchers Section ---------- */
+/* ---------- Why The Pep Shop / Serious Researchers Section ---------- */
 .why-drago-section {
   position: relative;
   padding: 60px 0 60px;
@@ -3622,8 +3737,7 @@ input::placeholder, textarea::placeholder { color: #6b7280; }
 
 .membership-card {
   position: relative;
-  width: 100%;
-  max-width: 1100px;
+  max-width: 900px;
   margin: 0 auto;
   border-radius: 26px;
   overflow: hidden;
@@ -3754,7 +3868,7 @@ input::placeholder, textarea::placeholder { color: #6b7280; }
   grid-template-columns: repeat(2, 1fr);
   gap: 16px 24px;
   width: 100%;
-  max-width: 940px;
+  max-width: 780px;
   margin: 0 auto 40px;
   text-align: left;
 }
@@ -3826,6 +3940,12 @@ input::placeholder, textarea::placeholder { color: #6b7280; }
   background-clip: text;
   color: transparent;
   letter-spacing: -0.01em;
+}
+
+.membership-price-cad {
+  font-size: 13px;
+  font-weight: 650;
+  color: #b8bcc4;
 }
 
 .membership-price-note {
@@ -5948,8 +6068,8 @@ input::placeholder, textarea::placeholder { color: #6b7280; }
 
 .shop-hero-tagline {
   position: absolute;
-  right: 6px;
-  top: 14px;
+  right: -14px;
+  top: 24px;
   font-family: 'Segoe Script', 'Brush Script MT', cursive, sans-serif;
   color: #c8102e;
   font-size: 16px;
@@ -6058,6 +6178,44 @@ input::placeholder, textarea::placeholder { color: #6b7280; }
   display: flex;
   align-items: center;
   gap: 12px;
+}
+
+.shop-search-box {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 14px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 9999px;
+  color: #8b909a;
+  min-width: 200px;
+}
+
+.shop-search-box input {
+  flex: 1;
+  min-width: 0;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: var(--color-ink);
+  font-size: 13.5px;
+}
+
+.shop-search-box input::placeholder {
+  color: #6b7078;
+}
+
+.shop-search-clear {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  color: #8b909a;
+  cursor: pointer;
+  padding: 2px;
+  flex-shrink: 0;
 }
 
 .shop-mobile-filter-trigger {
@@ -6561,7 +6719,22 @@ input::placeholder, textarea::placeholder { color: #6b7280; }
 
 .shop-card-price-box {
   display: flex;
-  align-items: baseline;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.shop-card-price-from {
+  font-size: 11px;
+  font-weight: 650;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.shop-card-price-cad {
+  font-size: 11px;
+  font-weight: 600;
+  color: #94a3b8;
 }
 
 .shop-card-price {
@@ -6822,9 +6995,17 @@ input::placeholder, textarea::placeholder { color: #6b7280; }
 
   .shop-controls-right {
     display: flex;
+    flex-wrap: wrap;
     justify-content: space-between;
     align-items: center;
     width: 100%;
+  }
+
+  .shop-search-box {
+    order: -1;
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
   }
 
   .shop-hero-banner {
@@ -7103,6 +7284,74 @@ input::placeholder, textarea::placeholder { color: #6b7280; }
   max-width: 1140px;
   margin: 0 auto;
   padding: 44px 24px 68px;
+}
+
+/* Policies Page */
+.policy-page-container {
+  max-width: 780px;
+}
+
+.policy-jump-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 22px;
+  padding: 16px 20px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  margin-bottom: 32px;
+}
+
+.policy-jump-nav a {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--color-brand, #c8102e);
+}
+
+.policy-section {
+  padding: 28px 0;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.policy-section:last-of-type {
+  border-bottom: none;
+}
+
+.policy-section-icon {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  background: rgba(200, 16, 46, 0.08);
+  color: var(--color-brand, #c8102e);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 14px;
+}
+
+.policy-section h2 {
+  font-size: 22px;
+  font-weight: 800;
+  margin: 0 0 14px;
+  color: var(--color-ink);
+}
+
+.policy-section p {
+  font-size: 14.5px;
+  line-height: 1.7;
+  color: #a8adb4;
+  margin: 0 0 14px;
+}
+
+.policy-section p:last-child {
+  margin-bottom: 0;
+}
+
+.policy-footer-note {
+  text-align: center;
+  font-size: 13.5px;
+  color: #94a3b8;
+  margin-top: 12px;
 }
 
 /* Overview Section: 2 Columns */
@@ -8551,6 +8800,12 @@ input::placeholder, textarea::placeholder { color: #6b7280; }
   letter-spacing: -0.02em;
 }
 
+.pdp-price-cad {
+  font-size: 14px;
+  font-weight: 650;
+  color: #94a3b8;
+}
+
 .pdp-price-unit {
   font-size: 13px;
   color: #a8adb4;
@@ -8607,6 +8862,60 @@ input::placeholder, textarea::placeholder { color: #6b7280; }
   line-height: 1.6;
   color: #a8adb4;
   margin-bottom: 24px;
+}
+
+/* Variant / Strength Selector */
+.pdp-variant-section {
+  margin-bottom: 22px;
+}
+
+.pdp-variant-label {
+  display: block;
+  font-size: 13px;
+  font-weight: 700;
+  color: #e7e9ec;
+  margin-bottom: 10px;
+}
+
+.pdp-variant-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.pdp-variant-pill {
+  padding: 9px 18px;
+  border-radius: 9999px;
+  border: 1.5px solid var(--color-border);
+  background: var(--color-surface-2);
+  color: #e7e9ec;
+  font-size: 13.5px;
+  font-weight: 650;
+  cursor: pointer;
+  transition: all 0.18s ease;
+}
+
+.pdp-variant-pill:hover:not(.disabled) {
+  border-color: var(--color-brand);
+  color: var(--color-brand);
+}
+
+.pdp-variant-pill.active {
+  background: var(--color-brand);
+  border-color: var(--color-brand);
+  color: #ffffff;
+}
+
+.pdp-variant-pill.disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  text-decoration: line-through;
+}
+
+.pdp-variant-oos {
+  font-size: 10.5px;
+  font-weight: 600;
+  text-decoration: none;
 }
 
 /* Quantity & Action Buttons */
@@ -8701,6 +9010,13 @@ input::placeholder, textarea::placeholder { color: #6b7280; }
 .pdp-add-cart-btn.added {
   background: #16a34a !important;
   box-shadow: 0 4px 14px rgba(22, 163, 74, 0.3) !important;
+}
+
+.pdp-add-cart-btn[disabled],
+.pdp-buy-now-btn[disabled] {
+  opacity: 0.5;
+  cursor: not-allowed;
+  box-shadow: none;
 }
 
 .pdp-buy-now-btn {
@@ -9953,6 +10269,19 @@ input::placeholder, textarea::placeholder { color: #6b7280; }
   background: rgba(220, 38, 38, 0.14);
 }
 
+.cart-item-variant-tag {
+  display: inline-block;
+  width: fit-content;
+  font-size: 11.5px;
+  font-weight: 650;
+  color: var(--color-brand);
+  background: rgba(224, 23, 61, 0.1);
+  border: 1px solid rgba(224, 23, 61, 0.25);
+  padding: 1.5px 8px;
+  border-radius: 999px;
+  margin: 2px 0 6px;
+}
+
 .cart-item-price-row {
   display: flex;
   justify-content: space-between;
@@ -10510,8 +10839,32 @@ input::placeholder, textarea::placeholder { color: #6b7280; }
   scrollbar-width: none;
 }
 
+/* Below ~560px, 4 tabs no longer fit in one row — wrap them instead of
+   relying on a horizontal scroll with a hidden scrollbar (which left
+   the extra tabs invisible with no hint they existed). */
+@media (max-width: 560px) {
+  .account-tabs-wrapper {
+    flex-wrap: wrap;
+    overflow-x: visible;
+  }
+
+  .account-tab {
+    flex: 1 1 calc(50% - 6px);
+    justify-content: center;
+    padding: 10px 8px;
+    font-size: 12.5px;
+  }
+}
+
 .account-tabs-wrapper::-webkit-scrollbar {
   display: none;
+}
+
+/* Admin Homepage editor has many tabs — wrap them onto multiple rows
+   instead of hiding extras behind an invisible horizontal scrollbar. */
+.admin-tabs-wrap {
+  flex-wrap: wrap;
+  overflow-x: visible;
 }
 
 .account-tab {
@@ -12051,6 +12404,11 @@ input::placeholder, textarea::placeholder { color: #6b7280; }
 .payment-method-card.selected {
   border-color: var(--color-brand, #c8102e);
   background: rgba(224, 23, 61, 0.08);
+}
+
+.payment-method-card.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 /* Order Review Mini List */

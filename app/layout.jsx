@@ -28,10 +28,10 @@ const notoDevanagari = Noto_Sans_Devanagari({
   weight: ["400", "500", "600", "700", "800"],
 });
 export const metadata = {
-  title: "Drago Pharma | Peptides for Revitalization & Health",
+  title: "The Pep Shop | Peptides for a Stronger Tomorrow",
   description:
-    "Drago Pharma - premium research peptides for laboratory and investigational use.",
-  icons: { icon: "/images/logo.webp" },
+    "The Pep Shop - premium research peptides for laboratory and investigational use.",
+  icons: { icon: "/images/tps-icon.png" },
 };
 
 export default function RootLayout({ children }) {

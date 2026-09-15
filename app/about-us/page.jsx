@@ -18,7 +18,7 @@ export default function About() {
     <div className="about-page-wrapper">
       {/* 1. UNIFIED PAGE HERO */}
       <PageHeader
-        badge="ABOUT DRAGO PHARMA"
+        badge="About The Pep Shop"
         badgeIcon={Sparkles}
         title="Precision Synthesis for"
         titleHighlight="Scientific Excellence"
@@ -41,7 +41,7 @@ export default function About() {
               </span>
               <h2>Pioneering High-Purity Peptide Science</h2>
               <p>
-                Drago Pharma is a peptide company dedicated to precision synthesis and reliable supply for the peptide and biotechnology fields. We collaborate directly with laboratories, university institutions, and independent research teams to deliver custom peptide solutions, bulk supply, and rigorously tested compounds.
+                The Pep Shop is a peptide company dedicated to precision synthesis and reliable supply for the peptide and biotechnology fields. We collaborate directly with laboratories, university institutions, and independent research teams to deliver custom peptide solutions, bulk supply, and rigorously tested compounds.
               </p>
               <p>
                 Every batch is produced with unwavering emphasis on purity and consistency. All products are intended strictly for in-vitro laboratory research and are not approved for human or veterinary use.
@@ -131,7 +131,7 @@ export default function About() {
           </div>
           <div className="about-compliance-info">
             <h4>Laboratory Research Notice</h4>
-            <p>All compounds supplied by Drago Pharma are intended solely for in-vitro laboratory research and analytical testing. They are not intended, formulated, or approved for human, medical, diagnostic, or veterinary use.</p>
+            <p>All compounds supplied by The Pep Shop are intended solely for in-vitro laboratory research and analytical testing. They are not intended, formulated, or approved for human, medical, diagnostic, or veterinary use.</p>
           </div>
         </div>
 

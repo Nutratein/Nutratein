@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 300" width="300" height="300">
+  <rect width="300" height="300" fill="#f7f7f8"/>
+  <g transform="translate(150,150)">
+    <path d="M-18 -70 L-18 -20 L-45 55 Q-50 70 -35 70 L35 70 Q50 70 45 55 L18 -20 L18 -70 Z"
+      fill="none" stroke="#c8102e" stroke-width="6" stroke-linejoin="round"/>
+    <line x1="-24" y1="-70" x2="24" y2="-70" stroke="#c8102e" stroke-width="6" stroke-linecap="round"/>
+    <path d="M-30 40 L30 40 L20 60 Q17 65 10 65 L-10 65 Q-17 65 -20 60 Z" fill="#c8102e" opacity="0.15"/>
+    <circle cx="-8" cy="30" r="4" fill="#c8102e" opacity="0.5"/>
+    <circle cx="10" cy="45" r="3" fill="#c8102e" opacity="0.5"/>
+    <circle cx="0" cy="15" r="3" fill="#c8102e" opacity="0.4"/>
+  </g>
+  <text x="150" y="250" text-anchor="middle" font-family="Arial, sans-serif" font-size="13" font-weight="700" fill="#94a3b8" letter-spacing="1">IMAGE COMING SOON</text>
+</svg>

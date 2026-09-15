@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import PageHeader from '@/components/PageHeader.jsx';
 import { 
@@ -51,14 +51,60 @@ const FAQS = [
     q: 'What is your refund policy?',
     a: 'Unopened products in their original manufacturer seal may be returned within 14 days of delivery. Contact our support team with your order number to initiate an authorized return.',
   },
+  {
+    id: 'wallet-what',
+    category: 'Wallet & Payments',
+    badge: 'Wallet',
+    q: 'What is the Wallet and why would I use it?',
+    a: 'Your Wallet is a prepaid balance on your account (available in both USD and CAD) that you can spend on any order or on the Apex Vault membership. Once your balance is loaded, checkout is instant — you don\'t need to wait for a new wire transfer to clear on every single order.',
+  },
+  {
+    id: 'wallet-topup',
+    category: 'Wallet & Payments',
+    badge: 'Wire Transfer',
+    q: 'How do I add money to my Wallet?',
+    a: 'Go to Account → Wallet → "Add Money to Wallet". Choose USD or CAD and enter an amount, and you\'ll be shown our bank wire details for that currency. Send the wire from your bank, then submit the request with your wire reference number (and optionally a screenshot of the transfer as proof). Your request appears as "Pending" until we verify it.',
+  },
+  {
+    id: 'wallet-approval',
+    category: 'Wallet & Payments',
+    badge: 'Approval Time',
+    q: 'How long does a Wallet top-up take to be approved?',
+    a: 'Once we confirm the wire has actually landed in our bank account, approval is usually done within a few hours. Your Wallet balance updates automatically the moment it\'s approved — you\'ll see it reflected on your Account → Wallet page.',
+  },
+  {
+    id: 'wallet-checkout',
+    category: 'Wallet & Payments',
+    badge: 'Checkout',
+    q: 'How do I pay for an order with my Wallet?',
+    a: 'At checkout, under Payment Preference, select "Pay with USD Wallet" or "Pay with CAD Wallet". If your balance covers the order, it\'s confirmed instantly — no wire transfer needed for that order. If your balance is too low, that option is disabled until you top up.',
+  },
+  {
+    id: 'wallet-currency',
+    category: 'Wallet & Payments',
+    badge: 'USD vs CAD',
+    q: 'What\'s the difference between the USD and CAD Wallet?',
+    a: 'They\'re two separate balances. All product prices are set in USD, so paying with your USD Wallet deducts the exact listed price. Paying with your CAD Wallet converts the USD order total to CAD using our current posted exchange rate at the moment of purchase, then deducts that amount from your CAD balance.',
+  },
 ];
 
-const CATEGORIES = ['All', 'Research & Usage', 'Purity & Quality', 'Orders & Shipping'];
+const CATEGORIES = ['All', 'Research & Usage', 'Purity & Quality', 'Orders & Shipping', 'Wallet & Payments'];
 
 export default function FAQ() {
   const [activeCategory, setActiveCategory] = useState('All');
   // First item open by default
   const [openItems, setOpenItems] = useState({ usage: true });
+
+  // Open + scroll to a specific FAQ when arriving via a link like /faq#wallet-what
+  useEffect(() => {
+    const hash = window.location.hash?.slice(1);
+    if (hash && FAQS.some((f) => f.id === hash)) {
+      setOpenItems((prev) => ({ ...prev, [hash]: true }));
+      setTimeout(() => {
+        document.getElementById(hash)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 100);
+    }
+  }, []);
 
   const toggleItem = (id) => {
     setOpenItems((prev) => ({
@@ -106,7 +152,7 @@ export default function FAQ() {
           {filteredFaqs.map((item) => {
             const isOpen = !!openItems[item.id];
             return (
-              <div key={item.id} className={`faq-card ${isOpen ? 'open' : ''}`}>
+              <div key={item.id} id={item.id} className={`faq-card ${isOpen ? 'open' : ''}`} style={{ scrollMarginTop: 100 }}>
                 <button
                   className="faq-card-header"
                   onClick={() => toggleItem(item.id)}
@@ -137,7 +183,7 @@ export default function FAQ() {
           <div>
             <h3>Laboratory Research Disclaimer</h3>
             <p>
-              All products listed and supplied by Drago Pharma are intended solely for in-vitro scientific research and investigational laboratory use. They are not approved by any regulatory body for human or veterinary use, and must not be used as pharmaceuticals, medical devices, dietary supplements, or cosmetics.
+              All products listed and supplied by The Pep Shop are intended solely for in-vitro scientific research and investigational laboratory use. They are not approved by any regulatory body for human or veterinary use, and must not be used as pharmaceuticals, medical devices, dietary supplements, or cosmetics.
             </p>
           </div>
         </div>

@@ -40,7 +40,7 @@ export async function POST(request) {
     const result = await new Promise((resolve, reject) => {
       const uploadStream = cloudinary.uploader.upload_stream(
         {
-          folder: 'dragopharma/products',
+          folder: 'thepepshop/products',
           resource_type: 'image',
         },
         (error, uploadResult) => {

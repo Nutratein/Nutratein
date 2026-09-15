@@ -52,7 +52,7 @@ export default function HeroVisual() {
         <div className="hv-image-frame">
           <img
             src="/images/hero-drago-product.jpg"
-            alt="Drago Pharma Research Peptides - High Purity Synthesis"
+            alt="The Pep Shop Research Peptides - High Purity Synthesis"
             className="hv-product-img"
             loading="eager"
           />

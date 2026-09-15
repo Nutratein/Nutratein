@@ -200,7 +200,7 @@ export default function CartDrawer({ onClose }) {
 
                     <div className="cart-item-details">
                       <div className="cart-item-top-row">
-                        <Link 
+                        <Link
                           href={`/shop`}
                           onClick={onClose}
                           className="cart-item-title"
@@ -216,6 +216,10 @@ export default function CartDrawer({ onClose }) {
                           <Trash2 size={16} />
                         </button>
                       </div>
+
+                      {item.variant_label && (
+                        <span className="cart-item-variant-tag">{item.variant_label}</span>
+                      )}
 
                       <div className="cart-item-price-row">
                         <span className="cart-unit-price">${item.price.toFixed(2)} each</span>

@@ -2,10 +2,13 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { getSiteContent } from '@/lib/siteContent';
+import { useAuth } from '@/context/AuthContext';
+import { getWallet, getCadRate, purchaseMembershipWithWallet } from '@/lib/wallet';
 import PageHeader from '@/components/PageHeader.jsx';
-import MembershipCard from '@/components/MembershipCard.jsx';
+import MembershipCard, { handleAnchorClick } from '@/components/MembershipCard.jsx';
 import Reveal from '@/components/Reveal.jsx';
 import {
   Gem,
@@ -16,7 +19,15 @@ import {
   FlaskConical,
   Users,
   Sparkles,
+  Wallet,
+  CheckCircle2,
+  X,
 } from 'lucide-react';
+
+function parsePriceUsd(priceStr) {
+  const n = Number(String(priceStr || '').replace(/[^0-9.]/g, ''));
+  return n > 0 ? n : 2497;
+}
 
 const gridVariants = {
   hidden: {},
@@ -45,18 +56,18 @@ const DEFAULT_MEMBERSHIP = {
   price: '$2,497.00',
   price_note: 'USD / year — billed annually. Limited seats available.',
   cta_label: 'Unlock The Vault',
-  cta_link: '/contact-us',
+  cta_link: '/membership#buy-with-wallet',
   closing_text: 'Built for institutions and independent researchers who need more than a storefront — a dedicated supply partner.',
   // Dedicated /membership page content
   intro_heading: 'Priority Access, Reserved',
   intro_paragraph_1:
     'The Apex Vault is an exclusive, one-year membership for researchers and institutions who order often enough that reliability matters more than anything else. Instead of competing with every other buyer when a popular batch restocks, members get first access, a standing credit toward custom synthesis work, and a private line straight to our lab team for sourcing and protocol questions.',
   intro_paragraph_2:
-    'It sits on top of everything Drago Pharma already does — third-party HPLC/MS purity testing, discreet cold-chain shipping, and full COAs on every batch — it just guarantees you never have to wait in line for it.',
+    'It sits on top of everything The Pep Shop already does — third-party HPLC/MS purity testing, discreet cold-chain shipping, and full COAs on every batch — it just guarantees you never have to wait in line for it.',
   image_1_url: '',
   image_1_alt: 'Apex Vault Membership',
   image_2_url: '',
-  image_2_alt: 'Drago Pharma research lab',
+  image_2_alt: 'The Pep Shop research lab',
   who_cards: [
     { title: 'Research Labs & Universities', text: 'Institutional buyers who need dependable, repeat supply across multiple sequences and study cycles.' },
     { title: 'High-Volume Researchers', text: 'Independent researchers who order often enough that a stockout or a slow reply actually costs them time.' },
@@ -82,7 +93,7 @@ const DEFAULT_MEMBERSHIP = {
   faqs: [
     {
       q: 'What exactly is the Apex Vault Membership?',
-      a: 'It’s an annual membership for serious researchers and institutions who need more than a standard storefront relationship. Members get priority access to new synthesis runs, a direct line to our lab team, annual custom-synthesis credit, and guaranteed concierge shipping — all backed by the same third-party purity testing every Drago Pharma order already includes.',
+      a: 'It’s an annual membership for serious researchers and institutions who need more than a standard storefront relationship. Members get priority access to new synthesis runs, a direct line to our lab team, annual custom-synthesis credit, and guaranteed concierge shipping — all backed by the same third-party purity testing every The Pep Shop order already includes.',
     },
     {
       q: 'How much does it cost and how do I pay?',
@@ -126,6 +137,16 @@ const DEFAULT_MEMBERSHIP = {
 export default function MembershipPage() {
   const [membership, setMembership] = useState(DEFAULT_MEMBERSHIP);
   const [openFaq, setOpenFaq] = useState(0);
+  const { user, profile, refreshProfile } = useAuth();
+  const router = useRouter();
+
+  const [wallet, setWallet] = useState({ usd_balance: 0, cad_balance: 0 });
+  const [buyCurrency, setBuyCurrency] = useState('usd');
+  const [purchasing, setPurchasing] = useState(false);
+  const [purchaseError, setPurchaseError] = useState('');
+  const [purchaseSuccess, setPurchaseSuccess] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [cadRate, setCadRate] = useState(1.35);
 
   useEffect(() => {
     let active = true;
@@ -134,11 +155,48 @@ export default function MembershipPage() {
         setMembership({ ...DEFAULT_MEMBERSHIP, ...value.membership });
       }
     });
+    getCadRate().then((r) => { if (active) setCadRate(r); });
     return () => { active = false; };
   }, []);
 
+  useEffect(() => {
+    if (!user?.id) return;
+    getWallet(user.id).then(setWallet);
+  }, [user?.id]);
+
   const toggleFaq = (idx) => setOpenFaq((prev) => (prev === idx ? null : idx));
   const faqs = membership.faqs && membership.faqs.length > 0 ? membership.faqs : DEFAULT_MEMBERSHIP.faqs;
+
+  const priceUsd = parsePriceUsd(membership.price);
+  const priceCad = Number((priceUsd * cadRate).toFixed(2));
+  const canPayUsd = Number(wallet.usd_balance) >= priceUsd;
+  const canPayCad = Number(wallet.cad_balance) >= priceCad;
+  const isActiveMember = profile?.is_member && profile?.membership_expires_at && new Date(profile.membership_expires_at) > new Date();
+  const daysRemaining = isActiveMember
+    ? Math.max(0, Math.ceil((new Date(profile.membership_expires_at) - new Date()) / (1000 * 60 * 60 * 24)))
+    : 0;
+
+  async function handlePurchase() {
+    if (!user) {
+      router.push('/login?redirect=/membership');
+      return;
+    }
+    setPurchaseError('');
+    setPurchasing(true);
+    try {
+      const { error } = await purchaseMembershipWithWallet(buyCurrency, priceUsd);
+      if (error) throw error;
+      setPurchaseSuccess(true);
+      setShowSuccessModal(true);
+      await refreshProfile();
+      const w = await getWallet(user.id);
+      setWallet(w);
+    } catch (err) {
+      setPurchaseError(err.message || 'Purchase failed. Please try again.');
+    } finally {
+      setPurchasing(false);
+    }
+  }
 
   return (
     <div className="membership-page-wrapper">
@@ -199,7 +257,11 @@ export default function MembershipPage() {
                 <span>{membership.price || '$2,497.00'} {membership.price_note ? `— ${membership.price_note}` : ''}</span>
               </div>
               <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}>
-                <Link href={membership.cta_link || '/contact-us'} className="membership-intro-join-btn">
+                <Link
+                  href={membership.cta_link || '/contact-us'}
+                  className="membership-intro-join-btn"
+                  onClick={(e) => handleAnchorClick(e, membership.cta_link || '/contact-us')}
+                >
                   <span className="membership-cta-tick" />
                   <Mail size={15} />
                   <span>{membership.cta_label || 'Apply For Access'}</span>
@@ -251,7 +313,7 @@ export default function MembershipPage() {
             className="membership-lab-banner"
             style={{ backgroundImage: `url(${membership.image_2_url})` }}
             role="img"
-            aria-label={membership.image_2_alt || 'Drago Pharma research lab'}
+            aria-label={membership.image_2_alt || 'The Pep Shop research lab'}
             initial={{ opacity: 0, scale: 1.06 }}
             whileInView={{ opacity: 1, scale: 1 }}
             viewport={{ once: true, amount: 0.3 }}
@@ -321,9 +383,276 @@ export default function MembershipPage() {
 
         {/* Final CTA — full membership card repeated, like the reference page */}
         <Reveal as="div" className="membership-page-final-cta">
-          <MembershipCard membership={membership} />
+          <MembershipCard membership={membership} cadRate={cadRate} isActiveMember={isActiveMember} expiresAt={profile?.membership_expires_at} />
         </Reveal>
+
+        {/* Buy Now with Wallet — hidden once already an active member; the MembershipCard above already
+            communicates that status clearly, so this section is reserved for the actual purchase flow. */}
+        {!isActiveMember && (
+        <Reveal as="div" id="buy-with-wallet" style={{ maxWidth: 560, margin: '32px auto 0', scrollMarginTop: 100 }}>
+          <div className="account-card-panel">
+            <div className="account-panel-header">
+              <div className="account-panel-title">
+                <Wallet size={18} style={{ color: 'var(--color-brand)' }} />
+                <span>Buy Instantly with Wallet</span>
+              </div>
+            </div>
+
+            {!user ? (
+              <div style={{ textAlign: 'center', padding: '10px 0' }}>
+                <p style={{ color: '#a8adb4', fontSize: 14, marginBottom: 16 }}>
+                  Log in to purchase the Apex Vault membership instantly with your wallet balance.
+                </p>
+                <Link href="/login?redirect=/membership" className="account-btn-primary" style={{ display: 'inline-flex' }}>
+                  Log In to Continue
+                </Link>
+              </div>
+            ) : (
+              <>
+                <p style={{ color: '#a8adb4', fontSize: 13.5, marginTop: 0 }}>
+                  Skip the wait — pay for your {membership.price || '$2,497.00'} membership directly from your wallet balance.
+                </p>
+
+                {purchaseError && (
+                  <div style={{ background: 'rgba(220,38,38,0.12)', color: '#dc2626', padding: '10px 14px', borderRadius: 8, marginBottom: 16, fontSize: 13 }}>
+                    {purchaseError}
+                  </div>
+                )}
+
+                <div style={{ display: 'flex', gap: 10, marginBottom: 16 }}>
+                  <button
+                    type="button"
+                    onClick={() => canPayUsd && setBuyCurrency('usd')}
+                    disabled={!canPayUsd}
+                    style={{
+                      flex: 1,
+                      padding: '12px',
+                      borderRadius: 10,
+                      border: buyCurrency === 'usd' ? '1.5px solid var(--color-brand)' : '1.5px solid var(--color-border)',
+                      background: buyCurrency === 'usd' ? 'rgba(200,16,46,0.08)' : 'transparent',
+                      opacity: canPayUsd ? 1 : 0.5,
+                      cursor: canPayUsd ? 'pointer' : 'not-allowed',
+                      textAlign: 'left',
+                    }}
+                  >
+                    <strong style={{ display: 'block', fontSize: 13.5 }}>USD Wallet</strong>
+                    <span style={{ fontSize: 12, color: canPayUsd ? '#a8adb4' : '#dc2626' }}>
+                      Balance ${Number(wallet.usd_balance).toFixed(2)} {!canPayUsd && '— insufficient'}
+                    </span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => canPayCad && setBuyCurrency('cad')}
+                    disabled={!canPayCad}
+                    style={{
+                      flex: 1,
+                      padding: '12px',
+                      borderRadius: 10,
+                      border: buyCurrency === 'cad' ? '1.5px solid var(--color-brand)' : '1.5px solid var(--color-border)',
+                      background: buyCurrency === 'cad' ? 'rgba(200,16,46,0.08)' : 'transparent',
+                      opacity: canPayCad ? 1 : 0.5,
+                      cursor: canPayCad ? 'pointer' : 'not-allowed',
+                      textAlign: 'left',
+                    }}
+                  >
+                    <strong style={{ display: 'block', fontSize: 13.5 }}>CAD Wallet</strong>
+                    <span style={{ fontSize: 12, color: canPayCad ? '#a8adb4' : '#dc2626' }}>
+                      Balance C${Number(wallet.cad_balance).toFixed(2)} {!canPayCad && '— insufficient'}
+                    </span>
+                  </button>
+                </div>
+
+                <button
+                  type="button"
+                  className="account-btn-primary"
+                  style={{ width: '100%', justifyContent: 'center' }}
+                  disabled={purchasing || (buyCurrency === 'usd' ? !canPayUsd : !canPayCad)}
+                  onClick={handlePurchase}
+                >
+                  {purchasing ? 'Processing...' : `Buy Now with ${buyCurrency.toUpperCase()} Wallet`}
+                </button>
+
+                <p style={{ fontSize: 11.5, color: '#94a3b8', textAlign: 'center', margin: '12px 0 0' }}>
+                  Not enough balance?{' '}
+                  <Link href="/account?tab=wallet" style={{ color: 'var(--color-brand)' }}>
+                    Add money to your wallet
+                  </Link>
+                </p>
+              </>
+            )}
+          </div>
+        </Reveal>
+        )}
       </div>
+
+      {/* PURCHASE SUCCESS MODAL */}
+      <AnimatePresence>
+        {showSuccessModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            style={{
+              position: 'fixed',
+              inset: 0,
+              background: 'rgba(8, 8, 12, 0.75)',
+              backdropFilter: 'blur(8px)',
+              zIndex: 9999,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: 20,
+            }}
+            onClick={() => setShowSuccessModal(false)}
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 24 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 16 }}
+              transition={{ type: 'spring', stiffness: 300, damping: 26 }}
+              onClick={(e) => e.stopPropagation()}
+              style={{
+                position: 'relative',
+                maxWidth: 440,
+                width: '100%',
+                borderRadius: 22,
+                overflow: 'hidden',
+                background: 'linear-gradient(180deg, #14171f 0%, #0d0f15 100%)',
+                border: '1px solid rgba(212,175,55,0.35)',
+                boxShadow: '0 30px 70px -20px rgba(0,0,0,0.7), 0 0 90px -30px rgba(212,175,55,0.5)',
+                textAlign: 'center',
+                padding: '40px 32px 32px',
+              }}
+            >
+              <motion.div
+                className="membership-glow-orb membership-glow-orb-1"
+                animate={{ opacity: [0.4, 0.8, 0.4], scale: [1, 1.2, 1] }}
+                transition={{ duration: 5, repeat: Infinity, ease: 'easeInOut' }}
+                style={{ position: 'absolute', top: -60, left: '50%', transform: 'translateX(-50%)', pointerEvents: 'none' }}
+              />
+
+              <button
+                onClick={() => setShowSuccessModal(false)}
+                style={{
+                  position: 'absolute',
+                  top: 14,
+                  right: 14,
+                  background: 'rgba(255,255,255,0.06)',
+                  border: 'none',
+                  borderRadius: 8,
+                  width: 30,
+                  height: 30,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                  color: '#a8adb4',
+                  zIndex: 1,
+                }}
+              >
+                <X size={16} />
+              </button>
+
+              <motion.div
+                initial={{ scale: 0, rotate: -30 }}
+                animate={{ scale: 1, rotate: 0 }}
+                transition={{ type: 'spring', stiffness: 260, damping: 18, delay: 0.1 }}
+                style={{
+                  width: 76,
+                  height: 76,
+                  margin: '0 auto 22px',
+                  borderRadius: '50%',
+                  background: 'linear-gradient(135deg, #34d399, #059669)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  boxShadow: '0 0 0 8px rgba(52,211,153,0.12), 0 10px 30px -8px rgba(5,150,105,0.6)',
+                  position: 'relative',
+                  zIndex: 1,
+                }}
+              >
+                <CheckCircle2 size={40} color="#fff" strokeWidth={2.2} />
+              </motion.div>
+
+              <span
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  fontSize: 11.5,
+                  fontWeight: 800,
+                  letterSpacing: '0.08em',
+                  textTransform: 'uppercase',
+                  color: '#d4af37',
+                  marginBottom: 10,
+                  position: 'relative',
+                  zIndex: 1,
+                }}
+              >
+                <Gem size={13} /> Welcome to Apex Vault
+              </span>
+
+              <h3 style={{ margin: '0 0 10px', fontSize: 23, fontWeight: 800, position: 'relative', zIndex: 1 }}>
+                Membership Activated!
+              </h3>
+              <p style={{ color: '#a8adb4', fontSize: 14, lineHeight: 1.6, margin: '0 0 22px', position: 'relative', zIndex: 1 }}>
+                Your payment was processed instantly from your{' '}
+                <strong style={{ color: '#e5e7eb' }}>{buyCurrency.toUpperCase()} Wallet</strong>. Priority
+                batch access, concierge support, and every Apex Vault perk are live on your account now.
+              </p>
+
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  gap: 12,
+                  background: 'rgba(255,255,255,0.03)',
+                  border: '1px solid rgba(255,255,255,0.08)',
+                  borderRadius: 12,
+                  padding: '14px 16px',
+                  marginBottom: 24,
+                  position: 'relative',
+                  zIndex: 1,
+                }}
+              >
+                <div style={{ textAlign: 'left' }}>
+                  <div style={{ fontSize: 11.5, color: '#94a3b8', marginBottom: 3 }}>Plan</div>
+                  <div style={{ fontSize: 13.5, fontWeight: 700 }}>{membership.plan_label || 'APEX VAULT'}</div>
+                </div>
+                <div style={{ textAlign: 'right' }}>
+                  <div style={{ fontSize: 11.5, color: '#94a3b8', marginBottom: 3 }}>Valid Until</div>
+                  <div style={{ fontSize: 13.5, fontWeight: 700 }}>
+                    {profile?.membership_expires_at
+                      ? new Date(profile.membership_expires_at).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
+                      : '—'}
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10, position: 'relative', zIndex: 1 }}>
+                <Link
+                  href="/account"
+                  className="account-btn-primary"
+                  style={{ justifyContent: 'center' }}
+                  onClick={() => setShowSuccessModal(false)}
+                >
+                  <ShieldCheck size={16} />
+                  <span>View My Account</span>
+                </Link>
+                <button
+                  type="button"
+                  className="account-btn-secondary"
+                  style={{ justifyContent: 'center' }}
+                  onClick={() => setShowSuccessModal(false)}
+                >
+                  Continue Browsing
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

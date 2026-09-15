@@ -60,6 +60,9 @@ export default function AdminProducts() {
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [toastMessage, setToastMessage] = useState(null);
   const [showModal, setShowModal] = useState(false);
+  const [variants, setVariants] = useState([]);
+  const [deletedVariantIds, setDeletedVariantIds] = useState([]);
+  const [variantsLoading, setVariantsLoading] = useState(false);
 
   const showToast = (msg) => {
     setToastMessage(msg);
@@ -88,14 +91,54 @@ export default function AdminProducts() {
     loadAll();
   }, []);
 
-  function startEdit(p) {
+  async function startEdit(p) {
     setForm({ ...BLANK, ...p });
+    setVariants([]);
+    setDeletedVariantIds([]);
     setShowModal(true);
+    setVariantsLoading(true);
+    try {
+      const { data } = await supabase
+        .from('product_variants')
+        .select('*')
+        .eq('product_id', p.id)
+        .order('sort_order');
+      setVariants(data || []);
+    } finally {
+      setVariantsLoading(false);
+    }
   }
 
   function startNew() {
     setForm(BLANK);
+    setVariants([]);
+    setDeletedVariantIds([]);
     setShowModal(true);
+  }
+
+  function addVariantRow() {
+    setVariants((prev) => [
+      ...prev,
+      { _key: `new-${Date.now()}-${prev.length}`, label: '', price: '', compare_price: '', stock: 0, sku: '', is_default: prev.length === 0 },
+    ]);
+  }
+
+  function updateVariantField(index, field, value) {
+    setVariants((prev) => prev.map((v, i) => (i === index ? { ...v, [field]: value } : v)));
+  }
+
+  function setDefaultVariant(index) {
+    setVariants((prev) => prev.map((v, i) => ({ ...v, is_default: i === index })));
+  }
+
+  function removeVariantRow(index) {
+    setVariants((prev) => {
+      const target = prev[index];
+      if (target?.id) {
+        setDeletedVariantIds((ids) => [...ids, target.id]);
+      }
+      return prev.filter((_, i) => i !== index);
+    });
   }
 
   async function toggleFeatured(product) {
@@ -137,16 +180,53 @@ export default function AdminProducts() {
     };
 
     try {
-      const query = form.id
-        ? supabase.from('products').update(payload).eq('id', form.id)
-        : supabase.from('products').insert(payload);
+      let productId = form.id;
 
-      const { error: err } = await query;
-      if (err) throw err;
+      if (productId) {
+        const { error: err } = await supabase.from('products').update(payload).eq('id', productId);
+        if (err) throw err;
+      } else {
+        const { data: inserted, error: err } = await supabase
+          .from('products')
+          .insert(payload)
+          .select()
+          .single();
+        if (err) throw err;
+        productId = inserted.id;
+      }
+
+      const validVariants = variants.filter((v) => v.label && v.label.trim());
+
+      if (deletedVariantIds.length) {
+        const { error: delErr } = await supabase.from('product_variants').delete().in('id', deletedVariantIds);
+        if (delErr) throw delErr;
+      }
+
+      for (let i = 0; i < validVariants.length; i++) {
+        const v = validVariants[i];
+        const vPayload = {
+          product_id: productId,
+          label: v.label.trim(),
+          price: Number(v.price) || 0,
+          compare_price: v.compare_price ? Number(v.compare_price) : null,
+          stock: Number(v.stock) || 0,
+          sku: v.sku?.trim() || null,
+          image_url: v.image_url?.trim() || null,
+          sort_order: i,
+          is_default: !!v.is_default,
+        };
+        const vQuery = v.id
+          ? supabase.from('product_variants').update(vPayload).eq('id', v.id)
+          : supabase.from('product_variants').insert(vPayload);
+        const { error: vErr } = await vQuery;
+        if (vErr) throw vErr;
+      }
 
       showToast(form.id ? 'Product updated in Supabase!' : 'New product created in Supabase!');
       setShowModal(false);
       setForm(BLANK);
+      setVariants([]);
+      setDeletedVariantIds([]);
       await loadAll();
     } catch (err) {
       setError(err.message || 'Failed to save product in Supabase.');
@@ -601,6 +681,108 @@ export default function AdminProducts() {
                       </div>
                     </div>
 
+                    {/* Variants (Strengths / Sizes) */}
+                    <div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                        <label style={{ fontSize: 12.5, fontWeight: 700 }}>
+                          Variants (Strengths / Sizes)
+                        </label>
+                        <button
+                          type="button"
+                          onClick={addVariantRow}
+                          className="account-btn-secondary"
+                          style={{ padding: '4px 10px', fontSize: 12 }}
+                        >
+                          <Plus size={13} /> Add Variant
+                        </button>
+                      </div>
+                      <p style={{ fontSize: 11.5, color: '#94a3b8', margin: '0 0 10px' }}>
+                        Optional. Add strengths/sizes each with its own price &amp; stock (e.g. 5mg, 10mg). Leave empty to sell at the single price above.
+                      </p>
+
+                      {variantsLoading ? (
+                        <div style={{ fontSize: 12, color: '#94a3b8' }}>Loading variants...</div>
+                      ) : variants.length === 0 ? (
+                        <div style={{ fontSize: 12, color: '#64748b', fontStyle: 'italic' }}>
+                          No variants yet — product sells at the single price above.
+                        </div>
+                      ) : (
+                        <div style={{ overflowX: 'auto' }}>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, minWidth: 480 }}>
+                            {variants.map((v, i) => (
+                              <div
+                                key={v.id || v._key}
+                                style={{
+                                  display: 'flex',
+                                  gap: 6,
+                                  alignItems: 'center',
+                                  background: '#171b23',
+                                  border: '1px solid var(--color-border)',
+                                  borderRadius: 8,
+                                  padding: 8,
+                                }}
+                              >
+                                <input
+                                  placeholder="Label e.g. 5mg"
+                                  value={v.label}
+                                  onChange={(e) => updateVariantField(i, 'label', e.target.value)}
+                                  style={{ flex: 1.4, minWidth: 100, padding: '6px 8px', borderRadius: 6, border: '1px solid var(--color-border)', fontSize: 12.5 }}
+                                />
+                                <input
+                                  type="number"
+                                  step="0.01"
+                                  placeholder="Price"
+                                  value={v.price}
+                                  onChange={(e) => updateVariantField(i, 'price', e.target.value)}
+                                  style={{ width: 80, padding: '6px 8px', borderRadius: 6, border: '1px solid var(--color-border)', fontSize: 12.5 }}
+                                />
+                                <input
+                                  type="number"
+                                  step="0.01"
+                                  placeholder="Compare"
+                                  value={v.compare_price ?? ''}
+                                  onChange={(e) => updateVariantField(i, 'compare_price', e.target.value)}
+                                  style={{ width: 80, padding: '6px 8px', borderRadius: 6, border: '1px solid var(--color-border)', fontSize: 12.5 }}
+                                />
+                                <input
+                                  type="number"
+                                  placeholder="Stock"
+                                  value={v.stock}
+                                  onChange={(e) => updateVariantField(i, 'stock', e.target.value)}
+                                  style={{ width: 64, padding: '6px 8px', borderRadius: 6, border: '1px solid var(--color-border)', fontSize: 12.5 }}
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() => setDefaultVariant(i)}
+                                  title="Set as default variant"
+                                  style={{
+                                    background: v.is_default ? 'rgba(200,16,46,0.15)' : 'transparent',
+                                    border: '1px solid var(--color-border)',
+                                    borderRadius: 6,
+                                    padding: '6px 8px',
+                                    fontSize: 11,
+                                    color: v.is_default ? 'var(--color-brand)' : '#94a3b8',
+                                    cursor: 'pointer',
+                                    whiteSpace: 'nowrap',
+                                  }}
+                                >
+                                  {v.is_default ? '★ Default' : 'Set default'}
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => removeVariantRow(i)}
+                                  style={{ background: 'transparent', border: 'none', color: '#dc2626', cursor: 'pointer', padding: 4, flexShrink: 0 }}
+                                  title="Remove variant"
+                                >
+                                  <Trash2 size={14} />
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
                     {/* Image URL & Upload */}
                     <div>
                       <label style={{ display: 'block', fontSize: 12.5, fontWeight: 700, marginBottom: 6 }}>
@@ -707,7 +889,16 @@ export default function AdminProducts() {
                         </p>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                           <span style={{ fontSize: 18, fontWeight: 800, color: 'var(--color-ink)' }}>
-                            ${Number(form.price || 0).toFixed(2)}
+                            {variants.filter((v) => v.label?.trim()).length > 1 && (
+                              <span style={{ fontSize: 11, fontWeight: 650, color: '#94a3b8', textTransform: 'uppercase', marginRight: 4 }}>
+                                From
+                              </span>
+                            )}
+                            $
+                            {(() => {
+                              const validPrices = variants.filter((v) => v.label?.trim()).map((v) => Number(v.price) || 0);
+                              return validPrices.length > 0 ? Math.min(...validPrices).toFixed(2) : Number(form.price || 0).toFixed(2);
+                            })()}
                           </span>
                           <span style={{ fontSize: 11.5, color: form.stock > 0 ? '#34d399' : '#dc2626', fontWeight: 650 }}>
                             {form.stock > 0 ? `${form.stock} in stock` : 'Out of stock'}

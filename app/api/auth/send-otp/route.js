@@ -50,7 +50,7 @@ export async function POST(request) {
       return NextResponse.json({ error: 'Failed to generate verification code.' }, { status: 500 });
     }
 
-    const fromName = process.env.RESEND_FROM_NAME || 'Drago Pharma';
+    const fromName = process.env.RESEND_FROM_NAME || 'The Pep Shop';
     const fromEmail = process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev';
 
     const { error: sendError } = await resend.emails.send({
@@ -62,7 +62,7 @@ export async function POST(request) {
           <div style="max-width: 440px; width:100%; margin: 0 auto; background:#12151b; border:1px solid rgba(255,255,255,0.08); border-radius: 14px; padding: 28px 20px; text-align:center; box-sizing:border-box;">
             <h2 style="margin: 0 0 8px; font-size: 20px; color:#f1f5f9;">Verify your email</h2>
             <p style="margin: 0 0 22px; font-size: 14px; color:#a8adb4;">
-              Use the code below to finish creating your Drago Pharma account. This code expires in ${OTP_TTL_MINUTES} minutes.
+              Use the code below to finish creating your Pep Shop account. This code expires in ${OTP_TTL_MINUTES} minutes.
             </p>
             <div style="display:block; width:100%; max-width: 200px; margin: 0 auto; box-sizing:border-box; padding: 14px 8px; background:#171b23; border:1px solid rgba(224,23,61,0.35); border-radius: 10px; font-size: 28px; font-weight: 800; letter-spacing: 6px; color:#e0173d; text-align:center; white-space:nowrap;">
               ${code}

@@ -11,16 +11,26 @@ import {
   ShoppingBag,
   ExternalLink,
   Store,
-  Star
+  Star,
+  Wallet,
+  Tag,
+  MapPin,
+  Truck,
+  Gem
 } from 'lucide-react';
 
 const LINKS = [
   { href: '/admin', label: 'Dashboard', icon: LayoutDashboard, end: true },
   { href: '/admin/orders', label: 'Orders', icon: ShoppingBag },
   { href: '/admin/products', label: 'Products', icon: Package },
+  { href: '/admin/wallet', label: 'Wallet Top-ups', icon: Wallet },
+  { href: '/admin/promo-codes', label: 'Promo Codes', icon: Tag },
   { href: '/admin/reviews', label: 'Reviews', icon: Star },
   { href: '/admin/categories', label: 'Categories', icon: Tags },
   { href: '/admin/homepage', label: 'Homepage Content', icon: Layers },
+  { href: '/admin/contact-info', label: 'Contact Info', icon: MapPin },
+  { href: '/admin/shipping', label: 'Shipping & Fees', icon: Truck },
+  { href: '/admin/membership', label: 'Membership Card', icon: Gem },
 ];
 
 function isActive(pathname, href, end) {

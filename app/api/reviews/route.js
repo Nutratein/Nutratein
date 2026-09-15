@@ -1,13 +1,24 @@
 import { NextResponse } from 'next/server';
+import { createClient } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabaseClient';
+
+// Server-only client using the service role key — bypasses RLS so admin
+// moderation (viewing pending reviews, approve/reject/delete) actually works.
+// The anon key can only ever see status='approved' rows by RLS design, which
+// is exactly why pending reviews never reached the admin panel before this.
+const supabaseAdmin = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_ROLE_KEY
+);
 
 // In-memory fallback if neither reviews table nor site_content is ready
 let memoryReviews = [];
 
-async function getStoredReviews() {
+async function getStoredReviews(useAdminClient = false) {
   try {
     // 1. Try dedicated reviews table
-    const { data, error } = await supabase
+    const client = useAdminClient ? supabaseAdmin : supabase;
+    const { data, error } = await client
       .from('reviews')
       .select('*')
       .order('created_at', { ascending: false });
@@ -58,7 +69,7 @@ export async function GET(request) {
     const status = searchParams.get('status');
     const isAdmin = searchParams.get('admin') === 'true';
 
-    const { reviews } = await getStoredReviews();
+    const { reviews } = await getStoredReviews(isAdmin);
 
     let filtered = [...reviews];
 
@@ -90,6 +101,10 @@ export async function POST(request) {
 
     if (!user_name || !comment || !rating) {
       return NextResponse.json({ error: 'Name, rating and review text are required.' }, { status: 400 });
+    }
+
+    if (!user_email) {
+      return NextResponse.json({ error: 'You must be logged in to submit a review.' }, { status: 401 });
     }
 
     const newReview = {
@@ -140,14 +155,14 @@ export async function PATCH(request) {
 
     let updatedTable = false;
     try {
-      const { error } = await supabase.from('reviews').update({ status }).eq('id', id);
+      const { error } = await supabaseAdmin.from('reviews').update({ status }).eq('id', id);
       if (!error) updatedTable = true;
     } catch (e) {
       updatedTable = false;
     }
 
     // Always update fallback store to keep in sync
-    const { reviews } = await getStoredReviews();
+    const { reviews } = await getStoredReviews(true);
     const updatedList = reviews.map((r) => (r.id === id ? { ...r, status } : r));
     await saveReviewsFallback(updatedList);
 
@@ -166,12 +181,12 @@ export async function DELETE(request) {
     }
 
     try {
-      await supabase.from('reviews').delete().eq('id', id);
+      await supabaseAdmin.from('reviews').delete().eq('id', id);
     } catch (e) {
       // ignore
     }
 
-    const { reviews } = await getStoredReviews();
+    const { reviews } = await getStoredReviews(true);
     const updatedList = reviews.filter((r) => r.id !== id);
     await saveReviewsFallback(updatedList);
 

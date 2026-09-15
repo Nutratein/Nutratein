@@ -9,6 +9,7 @@ import { useCart } from '@/context/CartContext';
 import { useAuth } from '@/context/AuthContext';
 import { useWishlist } from '@/context/WishlistContext';
 import { PRODUCTS } from '@/lib/shopData';
+import { getCadRate } from '@/lib/wallet';
 import ProductCard from '@/components/ProductCard.jsx';
 import { 
   ShoppingCart, 
@@ -117,12 +118,19 @@ export default function ProductDetail() {
 
   const { isInWishlist, toggleWishlist } = useWishlist();
   const [product, setProduct] = useState(null);
+  const [variants, setVariants] = useState([]);
+  const [selectedVariant, setSelectedVariant] = useState(null);
   const [quantity, setQuantity] = useState(1);
   const [loading, setLoading] = useState(true);
   const [added, setAdded] = useState(false);
   const isWishlisted = product ? isInWishlist(product.id) : false;
   const [activeTab, setActiveTab] = useState('overview');
-  
+  const [cadRate, setCadRate] = useState(1.35);
+
+  useEffect(() => {
+    getCadRate().then(setCadRate);
+  }, []);
+
   const carouselRef = useRef(null);
 
   const scrollCarousel = (direction) => {
@@ -141,15 +149,21 @@ export default function ProductDetail() {
 
     supabase
       .from('products')
-      .select('*, categories(name,slug)')
+      .select('*, categories(name,slug), product_variants(*)')
       .eq('slug', slug)
       .single()
       .then(({ data, error }) => {
         if (!active) return;
         if (data && !error) {
           setProduct(data);
+          const sortedVariants = (data.product_variants || []).slice().sort((a, b) => a.sort_order - b.sort_order);
+          setVariants(sortedVariants);
+          const defaultVariant = sortedVariants.find((v) => v.is_default) || sortedVariants[0] || null;
+          setSelectedVariant(defaultVariant);
         } else if (staticMatch) {
           setProduct(staticMatch);
+          setVariants([]);
+          setSelectedVariant(null);
         } else {
           setProduct(null);
         }
@@ -173,9 +187,11 @@ export default function ProductDetail() {
   const [reviewForm, setReviewForm] = useState({ name: '', rating: 5, comment: '' });
   const [submittingReview, setSubmittingReview] = useState(false);
   const [reviewSuccess, setReviewSuccess] = useState(false);
+  const [visibleReviewCount, setVisibleReviewCount] = useState(5);
 
   useEffect(() => {
     if (!slug) return;
+    setVisibleReviewCount(5);
     fetch(`/api/reviews?slug=${slug}`)
       .then((res) => res.json())
       .then((data) => {
@@ -184,8 +200,16 @@ export default function ProductDetail() {
       .catch(() => {});
   }, [slug]);
 
+  // Prefill the reviewer name from the logged-in account once available
+  useEffect(() => {
+    if (user && !reviewForm.name) {
+      setReviewForm((f) => ({ ...f, name: user.user_metadata?.full_name || user.email?.split('@')[0] || '' }));
+    }
+  }, [user]);
+
   const handleSubmitReview = async (e) => {
     e.preventDefault();
+    if (!user) return;
     if (!reviewForm.name.trim() || !reviewForm.comment.trim()) return;
     setSubmittingReview(true);
     try {
@@ -197,6 +221,7 @@ export default function ProductDetail() {
           product_slug: slug,
           product_name: product?.name,
           user_name: reviewForm.name,
+          user_email: user.email,
           rating: reviewForm.rating,
           comment: reviewForm.comment,
         }),
@@ -241,14 +266,14 @@ export default function ProductDetail() {
 
   const handleAddToCart = () => {
     if (!product) return;
-    addItem(product, quantity);
+    addItem(product, quantity, selectedVariant);
     setAdded(true);
     setTimeout(() => setAdded(false), 2000);
   };
 
   const handleBuyNow = () => {
     if (!product) return;
-    addItem(product, quantity);
+    addItem(product, quantity, selectedVariant);
     router.push(user ? '/checkout' : '/login');
   };
 
@@ -282,9 +307,11 @@ export default function ProductDetail() {
     );
   }
 
-  const priceNum = Number(product.price || 0);
+  const priceNum = Number(selectedVariant ? selectedVariant.price : product.price || 0);
   const priceFormatted = priceNum.toFixed(2);
+  const cadPriceFormatted = (priceNum * cadRate).toFixed(2);
   const subtotalFormatted = (priceNum * quantity).toFixed(2);
+  const displayImage = selectedVariant?.image_url || product.image_url || '/images/bpc-157-300x300.webp';
   const reviewsVal = productReviews.length;
   const avgRating = reviewsVal > 0
     ? (productReviews.reduce((sum, r) => sum + r.rating, 0) / reviewsVal).toFixed(1)
@@ -293,7 +320,9 @@ export default function ProductDetail() {
   const categoryName = product.categories?.name || product.category_name || 'Research Peptides';
   const purityVal = product.purity || '≥ 99%';
   const formVal = product.form || 'Lyophilized';
-  const inStock = product.in_stock !== false;
+  const inStock = selectedVariant
+    ? Number(selectedVariant.stock) > 0
+    : (product.stock === undefined || product.stock === null ? true : Number(product.stock) > 0);
 
   return (
     <div className="pdp-page-wrapper">
@@ -353,7 +382,7 @@ export default function ProductDetail() {
 
                 {/* Main Image */}
                 <img
-                  src={product.image_url || '/images/bpc-157-300x300.webp'}
+                  src={displayImage}
                   alt={product.name}
                   loading="eager"
                 />
@@ -415,12 +444,39 @@ export default function ProductDetail() {
               <div className="pdp-price-box">
                 <div className="pdp-price-main">
                   <span className="pdp-price-val">${priceFormatted}</span>
+                  <span className="pdp-price-cad">≈ C${cadPriceFormatted}</span>
                 </div>
                 <div className="pdp-tier-discount">
                   <Sparkles size={12} />
                   <span>Volume Pricing: Buy 5+ save 10% | Buy 10+ save 15%</span>
                 </div>
               </div>
+
+              {/* Variant / Strength Selector */}
+              {variants.length > 0 && (
+                <div className="pdp-variant-section">
+                  <span className="pdp-variant-label">Select Strength:</span>
+                  <div className="pdp-variant-options">
+                    {variants.map((v) => {
+                      const outOfStock = Number(v.stock) <= 0;
+                      const isActive = selectedVariant?.id === v.id;
+                      return (
+                        <button
+                          key={v.id}
+                          type="button"
+                          className={`pdp-variant-pill ${isActive ? 'active' : ''} ${outOfStock ? 'disabled' : ''}`}
+                          onClick={() => !outOfStock && setSelectedVariant(v)}
+                          disabled={outOfStock}
+                          title={outOfStock ? `${v.label} — Out of Stock` : v.label}
+                        >
+                          {v.label}
+                          {outOfStock && <span className="pdp-variant-oos"> (Out of Stock)</span>}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
 
               {/* 4 Key Scientific Spec Badges */}
               <div className="pdp-specs-grid">
@@ -477,6 +533,7 @@ export default function ProductDetail() {
                     type="button"
                     className={`pdp-add-cart-btn ${added ? 'added' : ''}`}
                     onClick={handleAddToCart}
+                    disabled={!inStock}
                   >
                     {added ? (
                       <>
@@ -486,7 +543,7 @@ export default function ProductDetail() {
                     ) : (
                       <>
                         <ShoppingCart size={18} strokeWidth={2.2} />
-                        <span>Add to Cart</span>
+                        <span>{inStock ? 'Add to Cart' : 'Out of Stock'}</span>
                       </>
                     )}
                   </button>
@@ -495,6 +552,7 @@ export default function ProductDetail() {
                     type="button"
                     className="pdp-buy-now-btn"
                     onClick={handleBuyNow}
+                    disabled={!inStock}
                   >
                     <Zap size={16} />
                     <span>Buy Now</span>
@@ -768,7 +826,24 @@ export default function ProductDetail() {
                       <span>Write a Review</span>
                     </h4>
 
-                    {reviewSuccess ? (
+                    {!user ? (
+                      <div
+                        style={{
+                          background: 'rgba(255,255,255,0.03)',
+                          border: '1px dashed var(--color-border)',
+                          borderRadius: 10,
+                          padding: '18px 20px',
+                          textAlign: 'center',
+                        }}
+                      >
+                        <p style={{ margin: '0 0 12px', fontSize: 13.5, color: 'var(--color-ink-soft)' }}>
+                          Please log in to write a review — this keeps reviews tied to a real account.
+                        </p>
+                        <Link href="/login" className="account-btn-primary" style={{ display: 'inline-flex', padding: '8px 18px', fontSize: 13 }}>
+                          Log In to Review
+                        </Link>
+                      </div>
+                    ) : reviewSuccess ? (
                       <div
                         style={{
                           background: 'rgba(16, 185, 129, 0.1)',
@@ -886,7 +961,7 @@ export default function ProductDetail() {
                     </div>
                   ) : (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-                      {productReviews.map((rev) => (
+                      {productReviews.slice(0, visibleReviewCount).map((rev) => (
                         <div
                           key={rev.id}
                           style={{
@@ -925,6 +1000,27 @@ export default function ProductDetail() {
                           </p>
                         </div>
                       ))}
+
+                      {visibleReviewCount < productReviews.length && (
+                        <button
+                          type="button"
+                          onClick={() => setVisibleReviewCount((c) => c + 5)}
+                          style={{
+                            alignSelf: 'center',
+                            marginTop: 6,
+                            padding: '10px 24px',
+                            borderRadius: 999,
+                            border: '1px solid var(--color-border)',
+                            background: 'var(--color-surface)',
+                            color: 'var(--color-ink)',
+                            fontSize: 13.5,
+                            fontWeight: 700,
+                            cursor: 'pointer',
+                          }}
+                        >
+                          See More Reviews ({productReviews.length - visibleReviewCount} more)
+                        </button>
+                      )}
                     </div>
                   )}
                 </div>

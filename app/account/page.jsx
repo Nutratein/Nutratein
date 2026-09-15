@@ -1,7 +1,7 @@
 'use client';
 
-import { useEffect, useState, useMemo } from 'react';
-import { useRouter } from 'next/navigation';
+import { useEffect, useState, useMemo, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/context/AuthContext';
@@ -9,6 +9,7 @@ import { useCart, resolveProductImage } from '@/context/CartContext';
 import { supabase } from '@/lib/supabaseClient';
 import ProtectedRoute from '@/components/ProtectedRoute.jsx';
 import { PRODUCTS } from '@/lib/shopData';
+import { getWallet, getWalletTransactions, getWalletTopups, createTopupRequest, getWalletSettings } from '@/lib/wallet';
 import {
   Package,
   User,
@@ -30,23 +31,70 @@ import {
   Award,
   DollarSign,
   Calendar,
-  AlertCircle
+  AlertCircle,
+  Wallet,
+  Plus,
+  X,
+  Building,
+  ArrowDownCircle,
+  ArrowUpCircle,
+  XCircle,
+  Info
 } from 'lucide-react';
 
 function AccountContent() {
-  const { user, profile, signOut } = useAuth();
+  const { user, profile, signOut, refreshProfile } = useAuth();
   const { addItem } = useCart();
   const router = useRouter();
+  const urlParams = useSearchParams();
 
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('orders'); // 'orders' | 'profile' | 'addresses' | 'perks'
+  const [activeTab, setActiveTab] = useState('orders'); // 'orders' | 'wallet' | 'profile' | 'addresses'
+
+  // Deep-link support: /account?tab=wallet opens straight on a specific tab
+  useEffect(() => {
+    const tab = urlParams.get('tab');
+    if (tab && ['orders', 'wallet', 'profile', 'addresses'].includes(tab)) {
+      setActiveTab(tab);
+    }
+  }, [urlParams]);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [expandedOrderId, setExpandedOrderId] = useState(null);
   const [toastMessage, setToastMessage] = useState(null);
   const [copiedId, setCopiedId] = useState(null);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+
+  // Wallet state
+  const [wallet, setWallet] = useState({ usd_balance: 0, cad_balance: 0 });
+  const [walletTxns, setWalletTxns] = useState([]);
+  const [walletTopups, setWalletTopups] = useState([]);
+  const [walletSettings, setWalletSettings] = useState(null);
+  const [walletLoading, setWalletLoading] = useState(true);
+  const [showAddMoney, setShowAddMoney] = useState(false);
+  const [topupCurrency, setTopupCurrency] = useState('usd');
+  const [topupAmount, setTopupAmount] = useState('');
+  const [topupRef, setTopupRef] = useState('');
+  const [topupProofUrl, setTopupProofUrl] = useState('');
+  const [uploadingProof, setUploadingProof] = useState(false);
+  const [topupSubmitting, setTopupSubmitting] = useState(false);
+  const [topupStep, setTopupStep] = useState(1); // 1: amount+currency, 2: bank details + reference
+
+  // Edit profile modal state
+  const [showEditProfile, setShowEditProfile] = useState(false);
+  const [profileForm, setProfileForm] = useState({
+    full_name: '',
+    phone: '',
+    address_line1: '',
+    address_line2: '',
+    city: '',
+    state: '',
+    postal_code: '',
+    country: '',
+  });
+  const [savingProfile, setSavingProfile] = useState(false);
+  const [profileSaveError, setProfileSaveError] = useState('');
 
   // Trigger temporary toast
   const showToast = (msg) => {
@@ -96,6 +144,123 @@ function AccountContent() {
     };
   }, [user]);
 
+  // Fetch wallet data
+  const loadWallet = async () => {
+    if (!user?.id) return;
+    setWalletLoading(true);
+    try {
+      const [w, txns, topups, settings] = await Promise.all([
+        getWallet(user.id),
+        getWalletTransactions(user.id),
+        getWalletTopups(user.id),
+        getWalletSettings(),
+      ]);
+      setWallet(w);
+      setWalletTxns(txns);
+      setWalletTopups(topups);
+      setWalletSettings(settings);
+    } catch (err) {
+      console.error('Failed to load wallet', err);
+    } finally {
+      setWalletLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadWallet();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user]);
+
+  function openAddMoney() {
+    setTopupCurrency('usd');
+    setTopupAmount('');
+    setTopupRef('');
+    setTopupProofUrl('');
+    setTopupStep(1);
+    setShowAddMoney(true);
+  }
+
+  async function handleProofUpload(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingProof(true);
+    try {
+      const body = new FormData();
+      body.append('file', file);
+      const res = await fetch('/api/upload', { method: 'POST', body });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Upload failed.');
+      setTopupProofUrl(data.url);
+    } catch (err) {
+      showToast(err.message || 'Failed to upload proof image.');
+    } finally {
+      setUploadingProof(false);
+      e.target.value = '';
+    }
+  }
+
+  async function handleSubmitTopup(e) {
+    e.preventDefault();
+    if (!topupAmount || Number(topupAmount) <= 0) return;
+    setTopupSubmitting(true);
+    try {
+      const { error } = await createTopupRequest(user.id, topupCurrency, topupAmount, topupRef, topupProofUrl);
+      if (error) throw error;
+      showToast(`Top-up request for ${topupCurrency.toUpperCase()} ${Number(topupAmount).toFixed(2)} submitted!`);
+      setShowAddMoney(false);
+      await loadWallet();
+    } catch (err) {
+      showToast(err.message || 'Failed to submit top-up request.');
+    } finally {
+      setTopupSubmitting(false);
+    }
+  }
+
+  function openEditProfile() {
+    setProfileForm({
+      full_name: profile?.full_name || user?.user_metadata?.full_name || '',
+      phone: profile?.phone || '',
+      address_line1: profile?.address_line1 || '',
+      address_line2: profile?.address_line2 || '',
+      city: profile?.city || '',
+      state: profile?.state || '',
+      postal_code: profile?.postal_code || '',
+      country: profile?.country || '',
+    });
+    setProfileSaveError('');
+    setShowEditProfile(true);
+  }
+
+  async function handleSaveProfile(e) {
+    e.preventDefault();
+    if (!user?.id) return;
+    setSavingProfile(true);
+    setProfileSaveError('');
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          full_name: profileForm.full_name.trim() || null,
+          phone: profileForm.phone.trim() || null,
+          address_line1: profileForm.address_line1.trim() || null,
+          address_line2: profileForm.address_line2.trim() || null,
+          city: profileForm.city.trim() || null,
+          state: profileForm.state.trim() || null,
+          postal_code: profileForm.postal_code.trim() || null,
+          country: profileForm.country.trim() || null,
+        })
+        .eq('id', user.id);
+      if (error) throw error;
+      await refreshProfile();
+      setShowEditProfile(false);
+      showToast('Profile updated successfully!');
+    } catch (err) {
+      setProfileSaveError(err.message || 'Failed to update profile.');
+    } finally {
+      setSavingProfile(false);
+    }
+  }
+
   // Sign out handler
   const handleSignOut = async () => {
     setIsLoggingOut(true);
@@ -140,6 +305,12 @@ function AccountContent() {
     );
     showToast(`Added "${item.product_name}" to your cart!`);
   };
+
+  // Apex Vault membership status
+  const isActiveMember = profile?.is_member && profile?.membership_expires_at && new Date(profile.membership_expires_at) > new Date();
+  const daysRemaining = isActiveMember
+    ? Math.max(0, Math.ceil((new Date(profile.membership_expires_at) - new Date()) / (1000 * 60 * 60 * 24)))
+    : 0;
 
   // User details computed
   const displayName =
@@ -339,6 +510,14 @@ function AccountContent() {
           </button>
 
           <button
+            className={`account-tab ${activeTab === 'wallet' ? 'active' : ''}`}
+            onClick={() => setActiveTab('wallet')}
+          >
+            <Wallet size={17} />
+            <span>Wallet</span>
+          </button>
+
+          <button
             className={`account-tab ${activeTab === 'profile' ? 'active' : ''}`}
             onClick={() => setActiveTab('profile')}
           >
@@ -510,6 +689,9 @@ function AccountContent() {
                                 <div>
                                   <span className="account-order-item-name">
                                     {item.product_name}
+                                    {item.variant_label && (
+                                      <span style={{ color: 'var(--color-brand)', fontWeight: 650 }}> · {item.variant_label}</span>
+                                    )}
                                   </span>
                                   <span className="account-order-item-qty">
                                     &times; {item.quantity}
@@ -670,6 +852,179 @@ function AccountContent() {
           </div>
         )}
 
+        {/* TAB: WALLET */}
+        {activeTab === 'wallet' && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.2 }}
+          >
+            {/* How it works explainer */}
+            <div
+              style={{
+                display: 'flex',
+                gap: 12,
+                alignItems: 'flex-start',
+                background: 'rgba(200,16,46,0.06)',
+                border: '1px solid rgba(200,16,46,0.25)',
+                borderRadius: 12,
+                padding: '14px 16px',
+                marginBottom: 20,
+              }}
+            >
+              <Info size={18} style={{ color: 'var(--color-brand)', flexShrink: 0, marginTop: 1 }} />
+              <p style={{ margin: 0, fontSize: 13, lineHeight: 1.6, color: 'var(--color-ink-soft)' }}>
+                <strong style={{ color: 'var(--color-ink)' }}>How it works:</strong> Send a wire transfer,
+                submit the reference number below, and we&apos;ll credit your Wallet once the funds arrive
+                (usually within a few hours). After that, pay for any order or membership instantly from your
+                Wallet — no waiting on a new wire for every purchase.{' '}
+                <Link href="/faq#wallet-what" style={{ color: 'var(--color-brand)', fontWeight: 700 }}>
+                  Read the full FAQ →
+                </Link>
+              </p>
+            </div>
+
+            {/* Balance Cards */}
+            <div className="account-stats-grid" style={{ marginBottom: 20 }}>
+              <div className="account-stat-card">
+                <div className="account-stat-icon emerald">
+                  <DollarSign size={22} />
+                </div>
+                <div>
+                  <div className="account-stat-label">USD Wallet Balance</div>
+                  <div className="account-stat-value">
+                    {walletLoading ? '—' : `$${Number(wallet.usd_balance).toFixed(2)}`}
+                  </div>
+                </div>
+              </div>
+
+              <div className="account-stat-card">
+                <div className="account-stat-icon blue">
+                  <DollarSign size={22} />
+                </div>
+                <div>
+                  <div className="account-stat-label">CAD Wallet Balance</div>
+                  <div className="account-stat-value">
+                    {walletLoading ? '—' : `C$${Number(wallet.cad_balance).toFixed(2)}`}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div style={{ marginBottom: 24 }}>
+              <button className="account-btn-primary" onClick={openAddMoney}>
+                <Plus size={16} />
+                <span>Add Money to Wallet</span>
+              </button>
+            </div>
+
+            {/* Pending / Recent Top-ups */}
+            <div className="account-card-panel" style={{ marginBottom: 20 }}>
+              <div className="account-panel-header">
+                <div className="account-panel-title">
+                  <Building size={18} className="text-brand" style={{ color: '#c8102e' }} />
+                  <span>Top-up Requests</span>
+                </div>
+              </div>
+
+              {walletTopups.length === 0 ? (
+                <p style={{ color: '#a8adb4', fontSize: 13.5, margin: 0 }}>
+                  No top-up requests yet. Click &quot;Add Money to Wallet&quot; to get started.
+                </p>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  {walletTopups.map((t) => (
+                    <div
+                      key={t.id}
+                      style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        padding: '10px 14px',
+                        background: '#171b23',
+                        border: '1px solid var(--color-border)',
+                        borderRadius: 10,
+                        fontSize: 13.5,
+                      }}
+                    >
+                      <div>
+                        <strong>{t.currency.toUpperCase()} {Number(t.amount).toFixed(2)}</strong>
+                        <div style={{ fontSize: 12, color: '#94a3b8' }}>
+                          {new Date(t.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
+                          {t.reference_note ? ` · Ref: ${t.reference_note}` : ''}
+                        </div>
+                      </div>
+                      <span
+                        className={`account-status-tag ${t.status === 'approved' ? 'delivered' : t.status === 'rejected' ? 'cancelled' : 'pending'}`}
+                        style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}
+                      >
+                        {t.status === 'approved' && <CheckCircle2 size={13} />}
+                        {t.status === 'pending' && <Clock size={13} />}
+                        {t.status === 'rejected' && <XCircle size={13} />}
+                        {t.status.charAt(0).toUpperCase() + t.status.slice(1)}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Transaction Ledger */}
+            <div className="account-card-panel">
+              <div className="account-panel-header">
+                <div className="account-panel-title">
+                  <Package size={18} className="text-brand" style={{ color: '#c8102e' }} />
+                  <span>Transaction History</span>
+                </div>
+              </div>
+
+              {walletTxns.length === 0 ? (
+                <p style={{ color: '#a8adb4', fontSize: 13.5, margin: 0 }}>
+                  No wallet transactions yet.
+                </p>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  {walletTxns.map((tx) => {
+                    const isCredit = Number(tx.amount) > 0;
+                    return (
+                      <div
+                        key={tx.id}
+                        style={{
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                          padding: '10px 14px',
+                          background: '#171b23',
+                          border: '1px solid var(--color-border)',
+                          borderRadius: 10,
+                          fontSize: 13.5,
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                          {isCredit ? (
+                            <ArrowDownCircle size={18} style={{ color: '#34d399' }} />
+                          ) : (
+                            <ArrowUpCircle size={18} style={{ color: '#dc2626' }} />
+                          )}
+                          <div>
+                            <div>{tx.note || (tx.type === 'topup' ? 'Wallet top-up' : 'Order payment')}</div>
+                            <div style={{ fontSize: 12, color: '#94a3b8' }}>
+                              {new Date(tx.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
+                            </div>
+                          </div>
+                        </div>
+                        <strong style={{ color: isCredit ? '#34d399' : '#dc2626' }}>
+                          {isCredit ? '+' : ''}{tx.currency.toUpperCase()} {Number(tx.amount).toFixed(2)}
+                        </strong>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </motion.div>
+        )}
+
         {/* TAB 2: PROFILE & SECURITY */}
         {activeTab === 'profile' && (
           <motion.div
@@ -695,27 +1050,11 @@ function AccountContent() {
                 <span className="account-data-val">{user?.email}</span>
               </div>
               <div className="account-data-row">
-                <span className="account-data-label">Account ID</span>
-                <span className="account-data-val font-mono">
-                  {user?.id ? `${user.id.slice(0, 12)}...` : 'Active'}
-                </span>
+                <span className="account-data-label">Phone</span>
+                <span className="account-data-val">{profile?.phone || <span style={{ color: '#94a3b8' }}>Not provided</span>}</span>
               </div>
-              <div className="account-data-row">
-                <span className="account-data-label">Membership Status</span>
-                <span className="account-data-val" style={{ color: '#34d399' }}>
-                  Verified Active
-                </span>
-              </div>
-              <div className="account-data-row">
-                <span className="account-data-label">Tier</span>
-                <span className="account-data-val">Nutratein Elite Athlete</span>
-              </div>
-
               <div style={{ marginTop: 20 }}>
-                <button
-                  className="account-btn-secondary"
-                  onClick={() => showToast('Profile details are synchronized with Supabase!')}
-                >
+                <button className="account-btn-secondary" onClick={openEditProfile}>
                   Edit Profile Info
                 </button>
               </div>
@@ -733,17 +1072,6 @@ function AccountContent() {
                 <span className="account-data-label">Password Protection</span>
                 <span className="account-data-val">&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;</span>
               </div>
-              <div className="account-data-row">
-                <span className="account-data-label">Authentication Method</span>
-                <span className="account-data-val">Encrypted Supabase Auth</span>
-              </div>
-              <div className="account-data-row">
-                <span className="account-data-label">Session Status</span>
-                <span className="account-data-val" style={{ color: '#34d399' }}>
-                  Secure SSL Protected
-                </span>
-              </div>
-
               <div style={{ marginTop: 24, display: 'flex', gap: 12, flexWrap: 'wrap' }}>
                 <Link href="/contact-us" className="account-btn-secondary">
                   Request Password Reset
@@ -752,6 +1080,80 @@ function AccountContent() {
                   End Active Session
                 </button>
               </div>
+            </div>
+
+            {/* Apex Vault Membership Status — its own dedicated panel, spans full width */}
+            <div className="account-card-panel" style={{ gridColumn: '1 / -1' }}>
+              <div className="account-panel-header">
+                <div className="account-panel-title">
+                  <ShieldCheck size={18} className="text-brand" style={{ color: '#c8102e' }} />
+                  <span>Apex Vault Membership</span>
+                </div>
+                {isActiveMember && (
+                  <span className="account-badge-pill" style={{ background: 'rgba(52,211,153,0.12)', color: '#34d399', borderColor: 'rgba(52,211,153,0.35)' }}>
+                    <Sparkles size={13} />
+                    Active
+                  </span>
+                )}
+              </div>
+
+              {isActiveMember ? (
+                <>
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      gap: 12,
+                      flexWrap: 'wrap',
+                      background: 'rgba(52,211,153,0.06)',
+                      border: '1px solid rgba(52,211,153,0.25)',
+                      borderRadius: 12,
+                      padding: '14px 16px',
+                      marginBottom: 14,
+                    }}
+                  >
+                    <div>
+                      <div style={{ fontSize: 13, color: '#a8adb4', marginBottom: 4 }}>Days Remaining</div>
+                      <div style={{ fontSize: 26, fontWeight: 800, color: '#34d399', lineHeight: 1 }}>{daysRemaining}</div>
+                    </div>
+                    <div style={{ textAlign: 'right' }}>
+                      <div style={{ fontSize: 13, color: '#a8adb4', marginBottom: 4 }}>Renews / Expires On</div>
+                      <div style={{ fontSize: 14.5, fontWeight: 700 }}>
+                        {new Date(profile.membership_expires_at).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Visual countdown bar (out of 365 days) */}
+                  <div style={{ height: 8, borderRadius: 999, background: '#171b23', overflow: 'hidden', marginBottom: 14 }}>
+                    <div
+                      style={{
+                        height: '100%',
+                        width: `${Math.min(100, Math.max(3, (daysRemaining / 365) * 100))}%`,
+                        background: 'linear-gradient(90deg, #34d399, #10b981)',
+                        borderRadius: 999,
+                      }}
+                    />
+                  </div>
+
+                  <Link href="/membership" className="account-btn-secondary" style={{ display: 'inline-flex' }}>
+                    <ShieldCheck size={15} />
+                    <span>Manage / Renew Membership</span>
+                  </Link>
+                </>
+              ) : (
+                <>
+                  <p style={{ color: '#a8adb4', fontSize: 13.5, margin: '0 0 16px' }}>
+                    You&apos;re not an Apex Vault member yet. Unlock priority batch access, exclusive
+                    pricing, and dedicated research support.
+                  </p>
+                  <Link href="/membership" className="account-btn-primary" style={{ display: 'inline-flex' }}>
+                    <Sparkles size={15} />
+                    <span>Join Apex Vault</span>
+                  </Link>
+                </>
+              )}
             </div>
           </motion.div>
         )}
@@ -802,6 +1204,403 @@ function AccountContent() {
           </motion.div>
         )}
       </div>
+
+      {/* ADD MONEY TO WALLET MODAL */}
+      <AnimatePresence>
+        {showAddMoney && (
+          <div
+            style={{
+              position: 'fixed',
+              inset: 0,
+              background: 'rgba(15, 23, 42, 0.65)',
+              backdropFilter: 'blur(6px)',
+              zIndex: 9999,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: 20,
+              overflowY: 'auto',
+            }}
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              style={{
+                background: 'var(--color-surface)',
+                borderRadius: 20,
+                maxWidth: 480,
+                width: '100%',
+                maxHeight: '90vh',
+                display: 'flex',
+                flexDirection: 'column',
+                boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.55)',
+                overflow: 'hidden',
+              }}
+            >
+              <div
+                style={{
+                  padding: '20px 24px',
+                  borderBottom: '1px solid var(--color-border)',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  background: '#171b23',
+                }}
+              >
+                <h3 style={{ margin: 0, fontSize: 18, fontWeight: 800 }}>Add Money to Wallet</h3>
+                <button
+                  onClick={() => setShowAddMoney(false)}
+                  style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#a8adb4' }}
+                >
+                  <X size={20} />
+                </button>
+              </div>
+
+              <div style={{ overflowY: 'auto', padding: 24 }}>
+                {topupStep === 1 && (
+                  <>
+                    <div style={{ marginBottom: 16 }}>
+                      <label style={{ display: 'block', fontSize: 12.5, fontWeight: 700, marginBottom: 8 }}>
+                        Currency
+                      </label>
+                      <div style={{ display: 'flex', gap: 10 }}>
+                        {['usd', 'cad'].map((cur) => (
+                          <button
+                            key={cur}
+                            type="button"
+                            onClick={() => setTopupCurrency(cur)}
+                            style={{
+                              flex: 1,
+                              padding: '10px 12px',
+                              borderRadius: 8,
+                              border: topupCurrency === cur ? '1.5px solid var(--color-brand)' : '1.5px solid var(--color-border)',
+                              background: topupCurrency === cur ? 'rgba(200,16,46,0.08)' : 'transparent',
+                              color: topupCurrency === cur ? 'var(--color-brand)' : 'inherit',
+                              fontWeight: 700,
+                              cursor: 'pointer',
+                            }}
+                          >
+                            {cur.toUpperCase()}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {(() => {
+                      const min = Number(walletSettings?.[`min_topup_${topupCurrency}`] ?? 10);
+                      const max = Number(walletSettings?.[`max_topup_${topupCurrency}`] ?? 10000);
+                      const amountNum = Number(topupAmount);
+                      const outOfRange = !topupAmount || amountNum < min || amountNum > max;
+
+                      return (
+                        <>
+                          <div style={{ marginBottom: 20 }}>
+                            <label style={{ display: 'block', fontSize: 12.5, fontWeight: 700, marginBottom: 8 }}>
+                              Amount ({topupCurrency.toUpperCase()})
+                            </label>
+                            <input
+                              type="number"
+                              min={min}
+                              max={max}
+                              step="0.01"
+                              value={topupAmount}
+                              onChange={(e) => setTopupAmount(e.target.value)}
+                              placeholder={`e.g. ${min.toFixed(2)}`}
+                              style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1.5px solid var(--color-border)', fontSize: 14, boxSizing: 'border-box' }}
+                            />
+                            <p style={{ fontSize: 11.5, color: topupAmount && outOfRange ? '#dc2626' : '#94a3b8', margin: '6px 0 0' }}>
+                              Min {topupCurrency.toUpperCase()} {min.toFixed(2)} — Max {topupCurrency.toUpperCase()} {max.toFixed(2)}
+                            </p>
+                          </div>
+
+                          <button
+                            type="button"
+                            className="account-btn-primary"
+                            style={{ width: '100%', justifyContent: 'center' }}
+                            disabled={outOfRange}
+                            onClick={() => setTopupStep(2)}
+                          >
+                            Continue
+                          </button>
+                        </>
+                      );
+                    })()}
+                  </>
+                )}
+
+                {topupStep === 2 && (
+                  <form onSubmit={handleSubmitTopup}>
+                    <p style={{ fontSize: 13, color: '#a8adb4', marginTop: 0 }}>
+                      Send <strong>{topupCurrency.toUpperCase()} {Number(topupAmount).toFixed(2)}</strong> by wire transfer to the account below, then submit your reference number.
+                    </p>
+
+                    <div style={{ background: '#171b23', border: '1px solid var(--color-border)', borderRadius: 10, padding: 14, marginBottom: 16, fontSize: 13 }}>
+                      {(() => {
+                        const bank = topupCurrency === 'usd' ? walletSettings?.usd_bank : walletSettings?.cad_bank;
+                        if (!bank || !bank.account_number) {
+                          return (
+                            <span style={{ color: '#94a3b8' }}>
+                              Bank details have not been configured yet. Contact support for wire instructions.
+                            </span>
+                          );
+                        }
+                        return (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                            <div><strong>Bank:</strong> {bank.bank_name}</div>
+                            <div><strong>Account Name:</strong> {bank.account_name}</div>
+                            <div><strong>Account Number:</strong> {bank.account_number}</div>
+                            {topupCurrency === 'usd' ? (
+                              <div><strong>Routing Number:</strong> {bank.routing_number}</div>
+                            ) : (
+                              <>
+                                <div><strong>Transit Number:</strong> {bank.transit_number}</div>
+                                <div><strong>Institution Number:</strong> {bank.institution_number}</div>
+                              </>
+                            )}
+                            {bank.swift && <div><strong>SWIFT:</strong> {bank.swift}</div>}
+                          </div>
+                        );
+                      })()}
+                    </div>
+
+                    {walletSettings?.instructions && (
+                      <p style={{ fontSize: 12, color: '#94a3b8', marginBottom: 16 }}>{walletSettings.instructions}</p>
+                    )}
+
+                    <div style={{ marginBottom: 20 }}>
+                      <label style={{ display: 'block', fontSize: 12.5, fontWeight: 700, marginBottom: 8 }}>
+                        Wire Reference / Confirmation Number
+                      </label>
+                      <input
+                        value={topupRef}
+                        onChange={(e) => setTopupRef(e.target.value)}
+                        placeholder="e.g. TXN123456789"
+                        style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1.5px solid var(--color-border)', fontSize: 14, boxSizing: 'border-box' }}
+                      />
+                    </div>
+
+                    <div style={{ marginBottom: 20 }}>
+                      <label style={{ display: 'block', fontSize: 12.5, fontWeight: 700, marginBottom: 8 }}>
+                        Attach Payment Proof (Optional)
+                      </label>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleProofUpload}
+                        disabled={uploadingProof}
+                        style={{ fontSize: 12.5 }}
+                      />
+                      {uploadingProof && <span style={{ fontSize: 12, color: 'var(--color-brand)', marginLeft: 8 }}>Uploading...</span>}
+                      {topupProofUrl && (
+                        <div style={{ marginTop: 10, position: 'relative', width: 140, height: 140, borderRadius: 10, overflow: 'hidden', background: '#171b23' }}>
+                          <img src={topupProofUrl} alt="Payment proof" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                          <button
+                            type="button"
+                            onClick={() => setTopupProofUrl('')}
+                            style={{ position: 'absolute', top: 4, right: 4, background: 'rgba(0,0,0,0.6)', border: 'none', borderRadius: 6, color: '#fff', cursor: 'pointer', padding: 4 }}
+                          >
+                            <X size={13} />
+                          </button>
+                        </div>
+                      )}
+                      <p style={{ fontSize: 11.5, color: '#94a3b8', margin: '6px 0 0' }}>
+                        A screenshot or photo of your wire transfer receipt helps us approve faster.
+                      </p>
+                    </div>
+
+                    <div style={{ display: 'flex', gap: 10 }}>
+                      <button type="button" className="account-btn-secondary" onClick={() => setTopupStep(1)}>
+                        Back
+                      </button>
+                      <button type="submit" className="account-btn-primary" style={{ flex: 1, justifyContent: 'center' }} disabled={topupSubmitting}>
+                        {topupSubmitting ? 'Submitting...' : 'Submit Top-up Request'}
+                      </button>
+                    </div>
+                  </form>
+                )}
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* EDIT PROFILE MODAL */}
+      <AnimatePresence>
+        {showEditProfile && (
+          <div
+            style={{
+              position: 'fixed',
+              inset: 0,
+              background: 'rgba(15, 23, 42, 0.65)',
+              backdropFilter: 'blur(6px)',
+              zIndex: 9999,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: 20,
+              overflowY: 'auto',
+            }}
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              style={{
+                background: 'var(--color-surface)',
+                borderRadius: 20,
+                maxWidth: 560,
+                width: '100%',
+                maxHeight: '90vh',
+                display: 'flex',
+                flexDirection: 'column',
+                boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.55)',
+                overflow: 'hidden',
+              }}
+            >
+              <div
+                style={{
+                  padding: '20px 24px',
+                  borderBottom: '1px solid var(--color-border)',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  background: '#171b23',
+                }}
+              >
+                <h3 style={{ margin: 0, fontSize: 18, fontWeight: 800 }}>Edit Profile Info</h3>
+                <button
+                  onClick={() => setShowEditProfile(false)}
+                  style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#a8adb4' }}
+                >
+                  <X size={20} />
+                </button>
+              </div>
+
+              <form onSubmit={handleSaveProfile} style={{ overflowY: 'auto', padding: 24 }}>
+                {profileSaveError && (
+                  <div
+                    style={{
+                      background: 'rgba(220,38,38,0.08)',
+                      border: '1px solid rgba(220,38,38,0.3)',
+                      color: '#dc2626',
+                      borderRadius: 8,
+                      padding: '10px 12px',
+                      fontSize: 13,
+                      marginBottom: 16,
+                    }}
+                  >
+                    {profileSaveError}
+                  </div>
+                )}
+
+                <div style={{ marginBottom: 16 }}>
+                  <label style={{ display: 'block', fontSize: 12.5, fontWeight: 700, marginBottom: 8 }}>
+                    Full Name
+                  </label>
+                  <input
+                    value={profileForm.full_name}
+                    onChange={(e) => setProfileForm((f) => ({ ...f, full_name: e.target.value }))}
+                    placeholder="e.g. John Doe"
+                    style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1.5px solid var(--color-border)', fontSize: 14, boxSizing: 'border-box' }}
+                  />
+                </div>
+
+                <div style={{ marginBottom: 16 }}>
+                  <label style={{ display: 'block', fontSize: 12.5, fontWeight: 700, marginBottom: 8 }}>
+                    Phone
+                  </label>
+                  <input
+                    value={profileForm.phone}
+                    onChange={(e) => setProfileForm((f) => ({ ...f, phone: e.target.value }))}
+                    placeholder="e.g. +1 555 123 4567"
+                    style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1.5px solid var(--color-border)', fontSize: 14, boxSizing: 'border-box' }}
+                  />
+                </div>
+
+                <div style={{ marginBottom: 16 }}>
+                  <label style={{ display: 'block', fontSize: 12.5, fontWeight: 700, marginBottom: 8 }}>
+                    Address Line 1
+                  </label>
+                  <input
+                    value={profileForm.address_line1}
+                    onChange={(e) => setProfileForm((f) => ({ ...f, address_line1: e.target.value }))}
+                    placeholder="Street address"
+                    style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1.5px solid var(--color-border)', fontSize: 14, boxSizing: 'border-box' }}
+                  />
+                </div>
+
+                <div style={{ marginBottom: 16 }}>
+                  <label style={{ display: 'block', fontSize: 12.5, fontWeight: 700, marginBottom: 8 }}>
+                    Address Line 2 <span style={{ fontWeight: 500, color: '#94a3b8' }}>(optional)</span>
+                  </label>
+                  <input
+                    value={profileForm.address_line2}
+                    onChange={(e) => setProfileForm((f) => ({ ...f, address_line2: e.target.value }))}
+                    placeholder="Apt, suite, unit, etc."
+                    style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1.5px solid var(--color-border)', fontSize: 14, boxSizing: 'border-box' }}
+                  />
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: 12.5, fontWeight: 700, marginBottom: 8 }}>
+                      City
+                    </label>
+                    <input
+                      value={profileForm.city}
+                      onChange={(e) => setProfileForm((f) => ({ ...f, city: e.target.value }))}
+                      style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1.5px solid var(--color-border)', fontSize: 14, boxSizing: 'border-box' }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: 12.5, fontWeight: 700, marginBottom: 8 }}>
+                      State / Province
+                    </label>
+                    <input
+                      value={profileForm.state}
+                      onChange={(e) => setProfileForm((f) => ({ ...f, state: e.target.value }))}
+                      style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1.5px solid var(--color-border)', fontSize: 14, boxSizing: 'border-box' }}
+                    />
+                  </div>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 24 }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: 12.5, fontWeight: 700, marginBottom: 8 }}>
+                      Postal Code
+                    </label>
+                    <input
+                      value={profileForm.postal_code}
+                      onChange={(e) => setProfileForm((f) => ({ ...f, postal_code: e.target.value }))}
+                      style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1.5px solid var(--color-border)', fontSize: 14, boxSizing: 'border-box' }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: 12.5, fontWeight: 700, marginBottom: 8 }}>
+                      Country
+                    </label>
+                    <input
+                      value={profileForm.country}
+                      onChange={(e) => setProfileForm((f) => ({ ...f, country: e.target.value }))}
+                      style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1.5px solid var(--color-border)', fontSize: 14, boxSizing: 'border-box' }}
+                    />
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', gap: 10 }}>
+                  <button type="button" className="account-btn-secondary" onClick={() => setShowEditProfile(false)}>
+                    Cancel
+                  </button>
+                  <button type="submit" className="account-btn-primary" style={{ flex: 1, justifyContent: 'center' }} disabled={savingProfile}>
+                    {savingProfile ? 'Saving...' : 'Save Changes'}
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
@@ -809,7 +1608,9 @@ function AccountContent() {
 export default function Account() {
   return (
     <ProtectedRoute>
-      <AccountContent />
+      <Suspense fallback={null}>
+        <AccountContent />
+      </Suspense>
     </ProtectedRoute>
   );
 }
