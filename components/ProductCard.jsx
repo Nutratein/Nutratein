@@ -66,8 +66,8 @@ export default function ProductCard({ product, cadRate = 1.35 }) {
             width="15"
             height="15"
             viewBox="0 0 24 24"
-            fill={isWishlisted ? '#dc2626' : 'none'}
-            stroke={isWishlisted ? '#dc2626' : '#64748b'}
+            fill={isWishlisted ? '#0066ff' : 'none'}
+            stroke={isWishlisted ? '#0066ff' : '#64748b'}
             strokeWidth="2"
             strokeLinecap="round"
             strokeLinejoin="round"
@@ -100,8 +100,8 @@ export default function ProductCard({ product, cadRate = 1.35 }) {
                 width="12"
                 height="12"
                 viewBox="0 0 24 24"
-                fill={star <= Math.round(rating) && reviewsCount > 0 ? "#dc2626" : "#e2e8f0"}
-                stroke={star <= Math.round(rating) && reviewsCount > 0 ? "#dc2626" : "#cbd5e1"}
+                fill={star <= Math.round(rating) && reviewsCount > 0 ? "#0066ff" : "#e2e8f0"}
+                stroke={star <= Math.round(rating) && reviewsCount > 0 ? "#0066ff" : "#cbd5e1"}
                 strokeWidth="1"
               >
                 <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />

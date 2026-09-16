@@ -247,7 +247,7 @@ export default function AdminDashboard() {
       {/* QUICK INSIGHTS BAR */}
       <div className="admin-quick-strip">
         <div className="admin-strip-title">
-          <TrendingUp size={18} style={{ color: '#c8102e' }} />
+          <TrendingUp size={18} style={{ color: '#0066ff' }} />
           <span>Store Health: <strong>${aov}</strong> Avg Order Value &bull; <strong>{fulfillmentRate}%</strong> Fulfillment Rate</span>
         </div>
 

@@ -36,9 +36,9 @@ const WHY_US_CARDS = [
     title: 'Third-Party Tested',
     desc: 'Every batch is verified by an independent lab for purity and identity before it ships.',
     action: 'Verified Quality',
-    iconBg: '#fef2f2',
-    iconBorder: '#fee2e2',
-    iconColor: '#c1121f',
+    iconBg: '#eff6ff',
+    iconBorder: '#dbeafe',
+    iconColor: '#0066ff',
     cornerImg: '/images/feature-flask.png',
     icon: (
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
@@ -58,7 +58,7 @@ const WHY_US_CARDS = [
     action: 'Global Delivery',
     iconBg: '#eff6ff',
     iconBorder: '#dbeafe',
-    iconColor: '#c1121f',
+    iconColor: '#0066ff',
     cornerImg: '/images/feature-shipping.png',
     icon: (
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
@@ -76,7 +76,7 @@ const WHY_US_CARDS = [
     action: 'Your Data, Protected',
     iconBg: '#f0fdf4',
     iconBorder: '#dcfce7',
-    iconColor: '#c1121f',
+    iconColor: '#0066ff',
     cornerImg: '/images/feature-shield.png',
     icon: (
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
@@ -92,7 +92,7 @@ const WHY_US_CARDS = [
     action: 'Tailored for You',
     iconBg: '#faf5ff',
     iconBorder: '#f3e8ff',
-    iconColor: '#c1121f',
+    iconColor: '#0066ff',
     cornerImg: '/images/feature-molecule.png',
     icon: (
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
@@ -116,7 +116,7 @@ function getFeatureVisual(title) {
   const t = (title || '').toLowerCase();
   if (t.includes('test') || t.includes('purity') || t.includes('qualit') || t.includes('grade')) {
     return {
-      iconBg: '#fef2f2', iconBorder: '#fee2e2', iconColor: '#c1121f',
+      iconBg: '#eff6ff', iconBorder: '#dbeafe', iconColor: '#0066ff',
       cornerImg: '/images/feature-flask.png', action: 'Verified Quality',
       icon: (
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
@@ -132,7 +132,7 @@ function getFeatureVisual(title) {
   }
   if (t.includes('ship') || t.includes('deliver') || t.includes('discreet')) {
     return {
-      iconBg: '#eff6ff', iconBorder: '#dbeafe', iconColor: '#c1121f',
+      iconBg: '#eff6ff', iconBorder: '#dbeafe', iconColor: '#0066ff',
       cornerImg: '/images/feature-shipping.png', action: 'Global Delivery',
       icon: (
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
@@ -146,7 +146,7 @@ function getFeatureVisual(title) {
   }
   if (t.includes('secure') || t.includes('checkout') || t.includes('payment') || t.includes('privacy')) {
     return {
-      iconBg: '#f0fdf4', iconBorder: '#dcfce7', iconColor: '#c1121f',
+      iconBg: '#f0fdf4', iconBorder: '#dcfce7', iconColor: '#0066ff',
       cornerImg: '/images/feature-shield.png', action: 'Your Data, Protected',
       icon: (
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
@@ -158,7 +158,7 @@ function getFeatureVisual(title) {
   }
   if (t.includes('custom') || t.includes('synthesis') || t.includes('sequence')) {
     return {
-      iconBg: '#faf5ff', iconBorder: '#f3e8ff', iconColor: '#c1121f',
+      iconBg: '#faf5ff', iconBorder: '#f3e8ff', iconColor: '#0066ff',
       cornerImg: '/images/feature-molecule.png', action: 'Tailored for You',
       icon: (
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
@@ -174,7 +174,7 @@ function getFeatureVisual(title) {
     };
   }
   return {
-    iconBg: '#fef2f2', iconBorder: '#fee2e2', iconColor: '#c1121f',
+    iconBg: '#eff6ff', iconBorder: '#dbeafe', iconColor: '#0066ff',
     cornerImg: '/images/feature-flask.png', action: 'Learn More',
     icon: (
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
@@ -246,8 +246,8 @@ const DEFAULT_CONTENT = {
     primary_cta_link: '/shop',
     secondary_cta_label: 'Request a Quote',
     secondary_cta_link: '/contact-us',
-    bg_image_url: 'https://res.cloudinary.com/qjbhc75v/image/upload/thepepshop/homepage/hero_bg1.png',
-    product_image_url: 'https://res.cloudinary.com/qjbhc75v/image/upload/thepepshop/homepage/hero_product_img.png',
+    bg_image_url: '',
+    product_image_url: '',
   },
   trust_badges: ['Third-Party Tested', 'Ships in 24h', 'USA Based Lab', '>99% Purity', 'Secure Checkout'],
   stats: [
@@ -498,7 +498,7 @@ export default function Home() {
               <div className="new-trust-item">
                 <div className="new-trust-icon">
                   <div className="icon-bg"></div>
-                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#c8102e" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#0066ff" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
                 </div>
                 <div className="new-trust-text">
                   <strong>&gt;99%</strong>
@@ -508,7 +508,7 @@ export default function Home() {
               <div className="new-trust-item">
                 <div className="new-trust-icon">
                   <div className="icon-bg"></div>
-                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#c8102e" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M10 2v7.31M14 2v7.31M8.5 2h7M14 9.3a6.5 6.5 0 1 1-4 0"></path><line x1="8" y1="16" x2="16" y2="16"></line></svg>
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#0066ff" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M10 2v7.31M14 2v7.31M8.5 2h7M14 9.3a6.5 6.5 0 1 1-4 0"></path><line x1="8" y1="16" x2="16" y2="16"></line></svg>
                 </div>
                 <div className="new-trust-text">
                   <strong>Lab Tested</strong>
@@ -518,7 +518,7 @@ export default function Home() {
               <div className="new-trust-item">
                 <div className="new-trust-icon">
                   <div className="icon-bg"></div>
-                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#c8102e" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#0066ff" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
                 </div>
                 <div className="new-trust-text">
                   <strong>Worldwide</strong>
@@ -547,11 +547,13 @@ export default function Home() {
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.8, ease: "easeOut", delay: 0.2 }}
           >
-            <img
-              src={hero.product_image_url || '/images/hero_img/hero_product_img.png'}
-              alt="The Pep Shop Product Showcase"
-              className="new-hero-product-image"
-            />
+            {hero.product_image_url && (
+              <img
+                src={hero.product_image_url}
+                alt="The Pep Shop Product Showcase"
+                className="new-hero-product-image"
+              />
+            )}
           </motion.div>
         </div>
       </section>
@@ -564,9 +566,9 @@ export default function Home() {
             <div className="stats-decor-orb-left" />
             <div className="stats-decor-orb-right" />
             <svg className="stats-decor-wave" viewBox="0 0 1440 280" fill="none" preserveAspectRatio="none">
-              <path d="M-100 140 C 250 240, 520 60, 850 170 C 1150 240, 1300 80, 1600 140" stroke="rgba(200, 16, 46, 0.13)" strokeWidth="1.5" />
-              <path d="M-100 170 C 280 270, 550 90, 880 190 C 1180 260, 1330 110, 1600 160" stroke="rgba(200, 16, 46, 0.08)" strokeWidth="1.2" />
-              <path d="M-100 110 C 220 210, 490 30, 820 150 C 1120 220, 1270 50, 1600 120" stroke="rgba(200, 16, 46, 0.05)" strokeWidth="1" />
+              <path d="M-100 140 C 250 240, 520 60, 850 170 C 1150 240, 1300 80, 1600 140" stroke="rgba(0, 102, 255, 0.13)" strokeWidth="1.5" />
+              <path d="M-100 170 C 280 270, 550 90, 880 190 C 1180 260, 1330 110, 1600 160" stroke="rgba(0, 102, 255, 0.08)" strokeWidth="1.2" />
+              <path d="M-100 110 C 220 210, 490 30, 820 150 C 1120 220, 1270 50, 1600 120" stroke="rgba(0, 102, 255, 0.05)" strokeWidth="1" />
             </svg>
           </div>
 
@@ -602,6 +604,7 @@ export default function Home() {
               <div className="category-eyebrow-row">
                 <span className="category-eyebrow-dash"></span>
                 <span className="category-eyebrow-text">EXPLORE OUR RANGE</span>
+                <span className="category-eyebrow-dash"></span>
               </div>
               <h2 className="category-main-title">
                 Essential <span className="text-red-highlight">Peptide</span> Categories
@@ -868,7 +871,7 @@ export default function Home() {
               {/* Background 3D Artwork Layer on the right */}
               <div className="promo-banner-art-wrap" aria-hidden="true">
                 <img
-                  src="/images/promo-shipping-art.jpg"
+                  src="/images/promo-shipping-art.png"
                   alt="Free shipping delivery truck and parcel packages"
                   className="promo-banner-art-img"
                   loading="lazy"
@@ -989,7 +992,7 @@ export default function Home() {
           {/* Background Laboratory Visuals Layer */}
           <div className="disclaimer-art-wrap" aria-hidden="true">
             <img
-              src="/images/disclaimer-lab-bg.jpg"
+              src="/images/disclaimer-lab-bg.png"
               alt="Laboratory research background with microscope and test tubes"
               className="disclaimer-art-img"
               loading="lazy"

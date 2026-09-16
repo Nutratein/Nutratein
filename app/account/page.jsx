@@ -379,7 +379,7 @@ function AccountContent() {
             exit={{ opacity: 0, y: 20, scale: 0.95 }}
             transition={{ duration: 0.2 }}
           >
-            <CheckCircle2 size={18} className="text-brand" style={{ color: '#c8102e' }} />
+            <CheckCircle2 size={18} className="text-brand" style={{ color: '#0066ff' }} />
             <span>{toastMessage}</span>
           </motion.div>
         )}
@@ -865,8 +865,8 @@ function AccountContent() {
                 display: 'flex',
                 gap: 12,
                 alignItems: 'flex-start',
-                background: 'rgba(200,16,46,0.06)',
-                border: '1px solid rgba(200,16,46,0.25)',
+                background: 'rgba(0,102,255,0.06)',
+                border: '1px solid rgba(0,102,255,0.25)',
                 borderRadius: 12,
                 padding: '14px 16px',
                 marginBottom: 20,
@@ -922,7 +922,7 @@ function AccountContent() {
             <div className="account-card-panel" style={{ marginBottom: 20 }}>
               <div className="account-panel-header">
                 <div className="account-panel-title">
-                  <Building size={18} className="text-brand" style={{ color: '#c8102e' }} />
+                  <Building size={18} className="text-brand" style={{ color: '#0066ff' }} />
                   <span>Top-up Requests</span>
                 </div>
               </div>
@@ -973,7 +973,7 @@ function AccountContent() {
             <div className="account-card-panel">
               <div className="account-panel-header">
                 <div className="account-panel-title">
-                  <Package size={18} className="text-brand" style={{ color: '#c8102e' }} />
+                  <Package size={18} className="text-brand" style={{ color: '#0066ff' }} />
                   <span>Transaction History</span>
                 </div>
               </div>
@@ -1036,7 +1036,7 @@ function AccountContent() {
             <div className="account-card-panel">
               <div className="account-panel-header">
                 <div className="account-panel-title">
-                  <User size={18} className="text-brand" style={{ color: '#c8102e' }} />
+                  <User size={18} className="text-brand" style={{ color: '#0066ff' }} />
                   <span>Personal Details</span>
                 </div>
               </div>
@@ -1063,7 +1063,7 @@ function AccountContent() {
             <div className="account-card-panel">
               <div className="account-panel-header">
                 <div className="account-panel-title">
-                  <ShieldCheck size={18} className="text-brand" style={{ color: '#c8102e' }} />
+                  <ShieldCheck size={18} className="text-brand" style={{ color: '#0066ff' }} />
                   <span>Security & Credentials</span>
                 </div>
               </div>
@@ -1086,7 +1086,7 @@ function AccountContent() {
             <div className="account-card-panel" style={{ gridColumn: '1 / -1' }}>
               <div className="account-panel-header">
                 <div className="account-panel-title">
-                  <ShieldCheck size={18} className="text-brand" style={{ color: '#c8102e' }} />
+                  <ShieldCheck size={18} className="text-brand" style={{ color: '#0066ff' }} />
                   <span>Apex Vault Membership</span>
                 </div>
                 {isActiveMember && (
@@ -1168,7 +1168,7 @@ function AccountContent() {
           >
             <div className="account-panel-header">
               <div className="account-panel-title">
-                <MapPin size={18} className="text-brand" style={{ color: '#c8102e' }} />
+                <MapPin size={18} className="text-brand" style={{ color: '#0066ff' }} />
                 <span>Default Shipping Address</span>
               </div>
               <span className="account-badge-pill">Primary</span>
@@ -1275,7 +1275,7 @@ function AccountContent() {
                               padding: '10px 12px',
                               borderRadius: 8,
                               border: topupCurrency === cur ? '1.5px solid var(--color-brand)' : '1.5px solid var(--color-border)',
-                              background: topupCurrency === cur ? 'rgba(200,16,46,0.08)' : 'transparent',
+                              background: topupCurrency === cur ? 'rgba(0,102,255,0.08)' : 'transparent',
                               color: topupCurrency === cur ? 'var(--color-brand)' : 'inherit',
                               fontWeight: 700,
                               cursor: 'pointer',

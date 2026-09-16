@@ -102,7 +102,7 @@ export default function CartPage() {
     return (
       <div className="modern-page-wrapper" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '60vh' }}>
         <div style={{ textAlign: 'center' }}>
-          <div style={{ width: 44, height: 44, border: '3px solid rgba(255,255,255,0.15)', borderTopColor: 'var(--color-brand, #c8102e)', borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto 16px' }} />
+          <div style={{ width: 44, height: 44, border: '3px solid rgba(255,255,255,0.15)', borderTopColor: 'var(--color-brand, #0066ff)', borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto 16px' }} />
           <p style={{ color: '#a8adb4', fontSize: 14, fontWeight: 600 }}>Loading research cart...</p>
         </div>
       </div>
@@ -155,7 +155,7 @@ export default function CartPage() {
                       {product.name}
                     </Link>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 'auto', paddingTop: 6 }}>
-                      <span style={{ fontSize: 15, fontWeight: 800, color: 'var(--color-brand, #c8102e)' }}>
+                      <span style={{ fontSize: 15, fontWeight: 800, color: 'var(--color-brand, #0066ff)' }}>
                         ${product.price.toFixed(2)}
                       </span>
                       <button 
@@ -544,7 +544,7 @@ export default function CartPage() {
               {!user && (
                 <div style={{ fontSize: 12, color: '#a8adb4', textAlign: 'center', marginTop: 10 }}>
                   Already a client?{' '}
-                  <Link href="/login?redirect=/cart" style={{ color: 'var(--color-brand, #c8102e)', fontWeight: 600 }}>
+                  <Link href="/login?redirect=/cart" style={{ color: 'var(--color-brand, #0066ff)', fontWeight: 600 }}>
                     Sign in
                   </Link>{' '}
                   for saved addresses & 1-click checkout.

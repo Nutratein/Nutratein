@@ -756,7 +756,7 @@ export default function AdminProducts() {
                                   onClick={() => setDefaultVariant(i)}
                                   title="Set as default variant"
                                   style={{
-                                    background: v.is_default ? 'rgba(200,16,46,0.15)' : 'transparent',
+                                    background: v.is_default ? 'rgba(0,102,255,0.15)' : 'transparent',
                                     border: '1px solid var(--color-border)',
                                     borderRadius: 6,
                                     padding: '6px 8px',
@@ -877,7 +877,7 @@ export default function AdminProducts() {
 
                       <div style={{ marginTop: 14 }}>
                         {form.featured && (
-                          <span style={{ fontSize: 10, fontWeight: 750, background: 'rgba(200,16,46,0.15)', color: 'var(--color-brand)', padding: '2px 8px', borderRadius: 100 }}>
+                          <span style={{ fontSize: 10, fontWeight: 750, background: 'rgba(0,102,255,0.15)', color: 'var(--color-brand)', padding: '2px 8px', borderRadius: 100 }}>
                             FEATURED
                           </span>
                         )}

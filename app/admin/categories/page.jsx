@@ -329,7 +329,7 @@ export default function AdminCategories() {
                               width: 32,
                               height: 32,
                               borderRadius: 8,
-                              background: 'rgba(200, 16, 46, 0.08)',
+                              background: 'rgba(0, 102, 255, 0.08)',
                               color: 'var(--color-brand)',
                               display: 'flex',
                               alignItems: 'center',

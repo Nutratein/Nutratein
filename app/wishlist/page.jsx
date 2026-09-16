@@ -53,7 +53,7 @@ export default function WishlistPage() {
         <div className="wishlist-header-row">
           <div>
             <div className="wishlist-eyebrow">
-              <Heart size={14} color="#dc2626" fill="#dc2626" />
+              <Heart size={14} color="#0066ff" fill="#0066ff" />
               <span>SAVED FORMULAS</span>
             </div>
             <h1 className="wishlist-title">
@@ -93,7 +93,7 @@ export default function WishlistPage() {
         {wishlist.length === 0 ? (
           <div className="wishlist-empty-card">
             <div className="wishlist-empty-icon-wrap">
-              <Heart size={38} strokeWidth={1.8} color="#dc2626" />
+              <Heart size={38} strokeWidth={1.8} color="#0066ff" />
             </div>
             <h2 className="wishlist-empty-title">Your Wishlist is Empty</h2>
             <p className="wishlist-empty-desc">

@@ -281,7 +281,7 @@ export default function ProductDetail() {
     return (
       <div className="pdp-page-wrapper">
         <div className="container" style={{ padding: '80px 24px', textAlign: 'center' }}>
-          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 10, color: '#c8102e', fontWeight: 700 }}>
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 10, color: '#0066ff', fontWeight: 700 }}>
             <FlaskConical className="animate-spin" size={24} />
             <span>Loading Research Compound…</span>
           </div>
@@ -370,8 +370,8 @@ export default function ProductDetail() {
                     width="18"
                     height="18"
                     viewBox="0 0 24 24"
-                    fill={isWishlisted ? '#c8102e' : 'none'}
-                    stroke={isWishlisted ? '#c8102e' : 'var(--color-ink-soft)'}
+                    fill={isWishlisted ? '#0066ff' : 'none'}
+                    stroke={isWishlisted ? '#0066ff' : 'var(--color-ink-soft)'}
                     strokeWidth="2"
                     strokeLinecap="round"
                     strokeLinejoin="round"
@@ -430,8 +430,8 @@ export default function ProductDetail() {
                     <Star
                       key={star}
                       size={14}
-                      fill={star <= Math.round(ratingVal) && reviewsVal > 0 ? '#dc2626' : '#2a2e37'}
-                      stroke={star <= Math.round(ratingVal) && reviewsVal > 0 ? '#dc2626' : '#454a56'}
+                      fill={star <= Math.round(ratingVal) && reviewsVal > 0 ? '#0066ff' : '#2a2e37'}
+                      stroke={star <= Math.round(ratingVal) && reviewsVal > 0 ? '#0066ff' : '#454a56'}
                     />
                   ))}
                 </div>
@@ -798,8 +798,8 @@ export default function ProductDetail() {
                             <Star
                               key={s}
                               size={14}
-                              fill={s <= Math.round(ratingVal) && reviewsVal > 0 ? '#dc2626' : '#2a2e37'}
-                              stroke={s <= Math.round(ratingVal) && reviewsVal > 0 ? '#dc2626' : '#454a56'}
+                              fill={s <= Math.round(ratingVal) && reviewsVal > 0 ? '#0066ff' : '#2a2e37'}
+                              stroke={s <= Math.round(ratingVal) && reviewsVal > 0 ? '#0066ff' : '#454a56'}
                             />
                           ))}
                         </div>
@@ -822,7 +822,7 @@ export default function ProductDetail() {
                     }}
                   >
                     <h4 style={{ margin: '0 0 14px', fontSize: 15, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <MessageSquare size={16} style={{ color: '#c8102e' }} />
+                      <MessageSquare size={16} style={{ color: '#0066ff' }} />
                       <span>Write a Review</span>
                     </h4>
 
@@ -901,8 +901,8 @@ export default function ProductDetail() {
                                 >
                                   <Star
                                     size={20}
-                                    fill={star <= reviewForm.rating ? '#dc2626' : '#2a2e37'}
-                                    stroke={star <= reviewForm.rating ? '#dc2626' : '#454a56'}
+                                    fill={star <= reviewForm.rating ? '#0066ff' : '#2a2e37'}
+                                    stroke={star <= reviewForm.rating ? '#0066ff' : '#454a56'}
                                   />
                                 </button>
                               ))}
@@ -989,8 +989,8 @@ export default function ProductDetail() {
                               <Star
                                 key={s}
                                 size={13}
-                                fill={s <= rev.rating ? '#dc2626' : '#2a2e37'}
-                                stroke={s <= rev.rating ? '#dc2626' : '#454a56'}
+                                fill={s <= rev.rating ? '#0066ff' : '#2a2e37'}
+                                stroke={s <= rev.rating ? '#0066ff' : '#454a56'}
                               />
                             ))}
                           </div>

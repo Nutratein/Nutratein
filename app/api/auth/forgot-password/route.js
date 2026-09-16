@@ -66,7 +66,7 @@ export async function POST(request) {
             <p style="margin: 0 0 24px; font-size: 14px; color:#a8adb4;">
               We received a request to reset your Pep Shop account password. This link expires in ${RESET_TTL_MINUTES} minutes.
             </p>
-            <a href="${resetLink}" style="display:inline-block; padding: 14px 32px; background:#e0173d; color:#ffffff; text-decoration:none; font-weight:700; font-size:15px; border-radius: 10px;">
+            <a href="${resetLink}" style="display:inline-block; padding: 14px 32px; background:#0066ff; color:#ffffff; text-decoration:none; font-weight:700; font-size:15px; border-radius: 10px;">
               Reset Password
             </a>
             <p style="margin: 24px 0 0; font-size: 12px; color:#7d838d; word-break: break-all;">

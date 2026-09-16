@@ -64,7 +64,7 @@ export async function POST(request) {
             <p style="margin: 0 0 22px; font-size: 14px; color:#a8adb4;">
               Use the code below to finish creating your Pep Shop account. This code expires in ${OTP_TTL_MINUTES} minutes.
             </p>
-            <div style="display:block; width:100%; max-width: 200px; margin: 0 auto; box-sizing:border-box; padding: 14px 8px; background:#171b23; border:1px solid rgba(224,23,61,0.35); border-radius: 10px; font-size: 28px; font-weight: 800; letter-spacing: 6px; color:#e0173d; text-align:center; white-space:nowrap;">
+            <div style="display:block; width:100%; max-width: 200px; margin: 0 auto; box-sizing:border-box; padding: 14px 8px; background:#171b23; border:1px solid rgba(0,102,255,0.35); border-radius: 10px; font-size: 28px; font-weight: 800; letter-spacing: 6px; color:#0066ff; text-align:center; white-space:nowrap;">
               ${code}
             </div>
             <p style="margin: 22px 0 0; font-size: 12.5px; color:#7d838d;">

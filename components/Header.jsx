@@ -153,7 +153,7 @@ export default function Header() {
             >
               <Heart size={20} strokeWidth={2.2} />
               {wishlistCount > 0 && (
-                <span className="cart-badge" style={{ background: '#dc2626' }}>
+                <span className="cart-badge" style={{ background: '#0066ff' }}>
                   {wishlistCount > 99 ? '99+' : wishlistCount}
                 </span>
               )}
@@ -213,7 +213,7 @@ export default function Header() {
                 onClick={() => setMenuOpen(false)}
               >
                 <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <Heart size={16} color="#dc2626" /> My Wishlist ({wishlistCount})
+                  <Heart size={16} color="#0066ff" /> My Wishlist ({wishlistCount})
                 </span>
                 <ArrowRight size={16} className="mobile-link-arrow" />
               </Link>

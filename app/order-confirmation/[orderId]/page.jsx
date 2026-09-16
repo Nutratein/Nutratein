@@ -168,7 +168,7 @@ export default function OrderConfirmation() {
               width: i % 3 === 0 ? 10 : 7,
               height: i % 3 === 0 ? 10 : 7,
               borderRadius: '50%',
-              background: i % 2 === 0 ? '#10b981' : '#c8102e',
+              background: i % 2 === 0 ? '#10b981' : '#0066ff',
               filter: 'blur(0.5px)'
             }}
           />
@@ -299,7 +299,7 @@ export default function OrderConfirmation() {
             <div className="conf-card">
               <div className="conf-card-head">
                 <h3 className="conf-card-title">
-                  <ShoppingBag size={17} color="#c8102e" />
+                  <ShoppingBag size={17} color="#0066ff" />
                   <span>Items Ordered ({items.length > 0 ? items.reduce((a, b) => a + (b.quantity || 1), 0) : 'Confirmed'})</span>
                 </h3>
                 <span style={{ fontSize: 13, color: 'var(--color-ink-soft)' }}>HPLC Purity ≥99%</span>
@@ -432,7 +432,7 @@ export default function OrderConfirmation() {
             <div className="conf-card">
               <div className="conf-card-head">
                 <h3 className="conf-card-title">
-                  <MapPin size={17} color="#c8102e" />
+                  <MapPin size={17} color="#0066ff" />
                   <span>Delivery Destination</span>
                 </h3>
               </div>

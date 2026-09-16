@@ -49,7 +49,7 @@ function ShopContent() {
   const [sortBy, setSortBy] = useState('featured');
   const [mobileFilterOpen, setMobileFilterOpen] = useState(false);
   const [cadRate, setCadRate] = useState(1.35);
-  const [heroProductImage, setHeroProductImage] = useState('/images/hero_img/hero_product_img.png');
+  const [heroProductImage, setHeroProductImage] = useState(null);
 
   useEffect(() => {
     getCadRate().then(setCadRate);
@@ -240,16 +240,18 @@ function ShopContent() {
 
           {/* Right Visual with 3D Molecules & Vial Art */}
           <div className="shop-hero-visual">
-            <div className="shop-hero-art-wrap">
-              <img
-                src={heroProductImage}
-                alt="The Pep Shop Research Peptides Showcase"
-                className="shop-hero-img"
-              />
-              <div className="shop-hero-tagline">
-                <em>Science for a<br />Healthier Tomorrow</em>
+            {heroProductImage && (
+              <div className="shop-hero-art-wrap">
+                <img
+                  src={heroProductImage}
+                  alt="The Pep Shop Research Peptides Showcase"
+                  className="shop-hero-img"
+                />
+                <div className="shop-hero-tagline">
+                  <em>Science for a<br />Healthier Tomorrow</em>
+                </div>
               </div>
-            </div>
+            )}
           </div>
         </div>
       </section>

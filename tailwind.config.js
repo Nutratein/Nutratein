@@ -11,15 +11,15 @@ module.exports = {
     extend: {
       colors: {
         brand: {
-          DEFAULT: "var(--color-brand, #c8102e)",
-          dark: "var(--color-brand-dark, #9c0c23)",
-          50: "#fff1f2",
-          100: "#ffe4e6",
-          500: "#c8102e",
-          600: "#b00d28",
-          700: "#9c0c23",
-          800: "#800a1c",
-          900: "#650817",
+          DEFAULT: "var(--color-brand, #0066ff)",
+          dark: "var(--color-brand-dark, #0052cc)",
+          50: "#eff6ff",
+          100: "#dbeafe",
+          500: "#0066ff",
+          600: "#0052cc",
+          700: "#1d4ed8",
+          800: "#1e40af",
+          900: "#172554",
         },
         ink: {
           DEFAULT: "var(--color-ink, #16181b)",
