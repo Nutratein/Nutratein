@@ -146,10 +146,9 @@ export default function Header() {
 
             <Link
               href="/wishlist"
-              className="icon-btn"
+              className="icon-btn header-wishlist-btn"
               aria-label={`View wishlist with ${wishlistCount} items`}
               title="My Wishlist"
-              style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
             >
               <Heart size={20} strokeWidth={2.2} />
               {wishlistCount > 0 && (

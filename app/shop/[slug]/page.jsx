@@ -352,11 +352,18 @@ export default function ProductDetail() {
           <div className="pdp-hero-grid">
             {/* Left Column: Visual Showcase Gallery */}
             <div className="pdp-gallery-col">
-              <div className="pdp-image-card">
-                {/* Floating Stock Badge */}
-                <div className={`pdp-badge-status ${inStock ? 'in-stock' : 'out-stock'}`}>
-                  {inStock && <span className="pdp-pulse-dot"></span>}
-                  <span>{inStock ? 'In Stock & Ready to Ship' : 'Out of Stock'}</span>
+              {/* Top Tags & Wishlist Bar Above Image */}
+              <div className="pdp-gallery-top-bar">
+                <div className="pdp-gallery-badges">
+                  <div className={`pdp-badge-status ${inStock ? 'in-stock' : 'out-stock'}`}>
+                    {inStock && <span className="pdp-pulse-dot"></span>}
+                    <span>{inStock ? 'In Stock & Ready to Ship' : 'Out of Stock'}</span>
+                  </div>
+
+                  <div className="pdp-badge-purity">
+                    <ShieldCheck size={13} />
+                    <span>{purityVal} HPLC Tested</span>
+                  </div>
                 </div>
 
                 {/* Wishlist Button */}
@@ -365,6 +372,7 @@ export default function ProductDetail() {
                   className={`pdp-wishlist-btn ${isWishlisted ? 'active' : ''}`}
                   onClick={() => product && toggleWishlist(product)}
                   aria-label={isWishlisted ? 'Remove from wishlist' : 'Add to wishlist'}
+                  title={isWishlisted ? 'Remove from Wishlist' : 'Add to Wishlist'}
                 >
                   <svg
                     width="18"
@@ -379,19 +387,15 @@ export default function ProductDetail() {
                     <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
                   </svg>
                 </button>
+              </div>
 
-                {/* Main Image */}
+              {/* Main Product Image - Pure & Unobstructed */}
+              <div className="pdp-image-card">
                 <img
                   src={displayImage}
                   alt={product.name}
                   loading="eager"
                 />
-
-                {/* Floating Purity Badge */}
-                <div className="pdp-badge-purity">
-                  <ShieldCheck size={14} />
-                  <span>{purityVal} HPLC Tested</span>
-                </div>
               </div>
 
               {/* Trust Badges Below Image */}
