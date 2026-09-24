@@ -21,7 +21,7 @@ export default function AdminWallet() {
   const [topups, setTopups] = useState([]);
   const [profilesById, setProfilesById] = useState({});
   const [loading, setLoading] = useState(true);
-  const [statusFilter, setStatusFilter] = useState('pending');
+  const [statusFilter, setStatusFilter] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [toastMessage, setToastMessage] = useState(null);
   const [busyId, setBusyId] = useState(null);
@@ -220,6 +220,7 @@ export default function AdminWallet() {
                 <tr>
                   <th>Customer</th>
                   <th>Amount</th>
+                  <th>Method</th>
                   <th>Reference</th>
                   <th>Date</th>
                   <th>Status</th>
@@ -232,6 +233,20 @@ export default function AdminWallet() {
                     <td>{profilesById[t.user_id]?.full_name || t.user_id.slice(0, 8)}</td>
                     <td>
                       <strong>{t.currency.toUpperCase()} {Number(t.amount).toFixed(2)}</strong>
+                    </td>
+                    <td>
+                      <span
+                        style={{
+                          fontSize: 11.5,
+                          fontWeight: 700,
+                          padding: '3px 8px',
+                          borderRadius: 999,
+                          background: t.method === 'etransfer' ? 'rgba(59,130,246,0.12)' : 'rgba(168,173,180,0.12)',
+                          color: t.method === 'etransfer' ? '#3b82f6' : '#a8adb4',
+                        }}
+                      >
+                        {t.method === 'etransfer' ? 'e-Transfer' : 'Wire'}
+                      </span>
                     </td>
                     <td style={{ fontSize: 12.5, color: '#a8adb4' }}>
                       <div>{t.reference_note || '—'}</div>
@@ -441,6 +456,38 @@ export default function AdminWallet() {
                   ))}
                 </div>
 
+                <h4 style={{ fontSize: 13, fontWeight: 800, margin: '0 0 10px', color: 'var(--color-brand)' }}>USD e-Transfer Details</h4>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 8 }}>
+                  <input
+                    type="email"
+                    value={settings.usd_etransfer?.email || ''}
+                    onChange={(e) => setSettings({ ...settings, usd_etransfer: { ...settings.usd_etransfer, email: e.target.value } })}
+                    placeholder="e-transfer email"
+                    style={{ padding: '8px 10px', borderRadius: 8, border: '1.5px solid var(--color-border)', fontSize: 13 }}
+                  />
+                  <input
+                    value={settings.usd_etransfer?.recipient_name || ''}
+                    onChange={(e) => setSettings({ ...settings, usd_etransfer: { ...settings.usd_etransfer, recipient_name: e.target.value } })}
+                    placeholder="recipient name"
+                    style={{ padding: '8px 10px', borderRadius: 8, border: '1.5px solid var(--color-border)', fontSize: 13 }}
+                  />
+                  <input
+                    value={settings.usd_etransfer?.security_question || ''}
+                    onChange={(e) => setSettings({ ...settings, usd_etransfer: { ...settings.usd_etransfer, security_question: e.target.value } })}
+                    placeholder="security question"
+                    style={{ padding: '8px 10px', borderRadius: 8, border: '1.5px solid var(--color-border)', fontSize: 13 }}
+                  />
+                  <input
+                    value={settings.usd_etransfer?.security_answer || ''}
+                    onChange={(e) => setSettings({ ...settings, usd_etransfer: { ...settings.usd_etransfer, security_answer: e.target.value } })}
+                    placeholder="security answer"
+                    style={{ padding: '8px 10px', borderRadius: 8, border: '1.5px solid var(--color-border)', fontSize: 13 }}
+                  />
+                </div>
+                <p style={{ fontSize: 11.5, color: '#94a3b8', margin: '0 0 20px' }}>
+                  Shown to customers topping up their USD wallet who choose e-Transfer instead of a bank wire.
+                </p>
+
                 <h4 style={{ fontSize: 13, fontWeight: 800, margin: '0 0 10px', color: 'var(--color-brand)' }}>CAD Wire Details</h4>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 20 }}>
                   {['bank_name', 'account_name', 'account_number', 'transit_number', 'institution_number', 'swift'].map((field) => (
@@ -453,6 +500,38 @@ export default function AdminWallet() {
                     />
                   ))}
                 </div>
+
+                <h4 style={{ fontSize: 13, fontWeight: 800, margin: '0 0 10px', color: 'var(--color-brand)' }}>CAD Interac e-Transfer Details</h4>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 8 }}>
+                  <input
+                    type="email"
+                    value={settings.cad_etransfer?.email || ''}
+                    onChange={(e) => setSettings({ ...settings, cad_etransfer: { ...settings.cad_etransfer, email: e.target.value } })}
+                    placeholder="e-transfer email"
+                    style={{ padding: '8px 10px', borderRadius: 8, border: '1.5px solid var(--color-border)', fontSize: 13 }}
+                  />
+                  <input
+                    value={settings.cad_etransfer?.recipient_name || ''}
+                    onChange={(e) => setSettings({ ...settings, cad_etransfer: { ...settings.cad_etransfer, recipient_name: e.target.value } })}
+                    placeholder="recipient name"
+                    style={{ padding: '8px 10px', borderRadius: 8, border: '1.5px solid var(--color-border)', fontSize: 13 }}
+                  />
+                  <input
+                    value={settings.cad_etransfer?.security_question || ''}
+                    onChange={(e) => setSettings({ ...settings, cad_etransfer: { ...settings.cad_etransfer, security_question: e.target.value } })}
+                    placeholder="security question"
+                    style={{ padding: '8px 10px', borderRadius: 8, border: '1.5px solid var(--color-border)', fontSize: 13 }}
+                  />
+                  <input
+                    value={settings.cad_etransfer?.security_answer || ''}
+                    onChange={(e) => setSettings({ ...settings, cad_etransfer: { ...settings.cad_etransfer, security_answer: e.target.value } })}
+                    placeholder="security answer"
+                    style={{ padding: '8px 10px', borderRadius: 8, border: '1.5px solid var(--color-border)', fontSize: 13 }}
+                  />
+                </div>
+                <p style={{ fontSize: 11.5, color: '#94a3b8', margin: '0 0 20px' }}>
+                  Shown to customers topping up their CAD wallet who choose Interac e-Transfer instead of a bank wire.
+                </p>
 
                 <div style={{ marginBottom: 20 }}>
                   <label style={{ display: 'block', fontSize: 12.5, fontWeight: 700, marginBottom: 6 }}>

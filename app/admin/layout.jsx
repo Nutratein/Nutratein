@@ -1,8 +1,10 @@
 'use client';
 
+import { useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import AdminRoute from '@/components/AdminRoute.jsx';
+import AdminNavbar from '@/components/AdminNavbar';
 import {
   LayoutDashboard,
   Layers,
@@ -40,13 +42,25 @@ function isActive(pathname, href, end) {
 
 export default function AdminLayout({ children }) {
   const pathname = usePathname();
+  const navRef = useRef(null);
+
+  useEffect(() => {
+    if (navRef.current) {
+      const activeEl = navRef.current.querySelector('.admin-mobile-item.active');
+      if (activeEl) {
+        activeEl.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+      }
+    }
+  }, [pathname]);
 
   return (
     <AdminRoute>
-      <div className="admin-shell">
-        <div className="admin-container">
+      <div className="admin-portal-wrapper">
+        <AdminNavbar />
+        <div className="admin-shell">
+          <div className="admin-container">
           {/* Mobile Horizontal Navigation */}
-          <div className="admin-mobile-nav">
+          <div className="admin-mobile-nav" ref={navRef}>
             {LINKS.map((link) => {
               const Icon = link.icon;
               const active = isActive(pathname, link.href, link.end);
@@ -107,6 +121,7 @@ export default function AdminLayout({ children }) {
           <main className="admin-content">{children}</main>
         </div>
       </div>
-    </AdminRoute>
+    </div>
+  </AdminRoute>
   );
 }

@@ -87,7 +87,7 @@ export default function MembershipCard({ membership, cadRate = 1.35, isActiveMem
               </span>
             </div>
 
-            <Link href="/account" className="membership-cta-btn">
+            <Link href="/account?tab=profile#membership-panel" className="membership-cta-btn">
               <span className="membership-cta-tick" />
               <span>View My Account</span>
               <span className="membership-cta-tick" />

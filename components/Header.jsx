@@ -56,6 +56,11 @@ export default function Header() {
     setSearchOpen(false);
   }, [pathname]);
 
+  // Dedicated admin header is used for all admin routes
+  if (pathname?.startsWith('/admin')) {
+    return null;
+  }
+
   return (
     <>
       {/* Sleek Top Announcement Bar */}

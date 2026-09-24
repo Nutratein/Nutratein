@@ -19,7 +19,9 @@ import {
   Check,
   ArrowRight,
   Sliders,
-  AlertCircle
+  AlertCircle,
+  Truck,
+  XCircle
 } from 'lucide-react';
 
 export default function AdminDashboard() {
@@ -287,7 +289,7 @@ export default function AdminDashboard() {
 
             {/* Status Pills */}
             <div className="account-status-pills">
-              {['all', 'pending', 'processing', 'delivered'].map((st) => (
+              {['all', 'pending', 'processing', 'shipped', 'completed', 'cancelled'].map((st) => (
                 <button
                   key={st}
                   className={`account-status-pill-btn ${
@@ -297,6 +299,8 @@ export default function AdminDashboard() {
                 >
                   {st === 'all'
                     ? 'All'
+                    : st === 'completed'
+                    ? 'Delivered'
                     : st.charAt(0).toUpperCase() + st.slice(1)}
                 </button>
               ))}
@@ -388,10 +392,12 @@ export default function AdminDashboard() {
                       </td>
                       <td>
                         <span className={`admin-table-status ${status}`}>
-                          {status === 'delivered' && <CheckCircle2 size={12} />}
-                          {status === 'processing' && <Clock size={12} />}
+                          {(status === 'completed' || status === 'delivered') && <CheckCircle2 size={12} />}
+                          {status === 'shipped' && <Truck size={12} />}
+                          {status === 'processing' && <RefreshCw size={12} className="animate-spin" />}
                           {status === 'pending' && <Clock size={12} />}
-                          {order.status || 'Processing'}
+                          {status === 'cancelled' && <XCircle size={12} />}
+                          {status === 'completed' ? 'Delivered' : (order.status || 'Processing')}
                         </span>
                       </td>
                       <td>

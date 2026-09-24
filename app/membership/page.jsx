@@ -381,15 +381,17 @@ export default function MembershipPage() {
           })}
         </motion.div>
 
-        {/* Final CTA — full membership card repeated, like the reference page */}
-        <Reveal as="div" className="membership-page-final-cta">
+        {/* Final CTA — full membership card repeated, like the reference page. Keeps the #buy-with-wallet
+            anchor id so "Unlock The Vault" always has somewhere to scroll to, even for existing members
+            (whose purchase panel below is hidden since this card already shows their active status). */}
+        <Reveal as="div" id="buy-with-wallet" className="membership-page-final-cta" style={{ scrollMarginTop: 100 }}>
           <MembershipCard membership={membership} cadRate={cadRate} isActiveMember={isActiveMember} expiresAt={profile?.membership_expires_at} />
         </Reveal>
 
         {/* Buy Now with Wallet — hidden once already an active member; the MembershipCard above already
             communicates that status clearly, so this section is reserved for the actual purchase flow. */}
         {!isActiveMember && (
-        <Reveal as="div" id="buy-with-wallet" style={{ maxWidth: 560, margin: '32px auto 0', scrollMarginTop: 100 }}>
+        <Reveal as="div" style={{ maxWidth: 560, margin: '32px auto 0', scrollMarginTop: 100 }}>
           <div className="account-card-panel">
             <div className="account-panel-header">
               <div className="account-panel-title">
@@ -632,7 +634,7 @@ export default function MembershipPage() {
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10, position: 'relative', zIndex: 1 }}>
                 <Link
-                  href="/account"
+                  href="/account?tab=profile#membership-panel"
                   className="account-btn-primary"
                   style={{ justifyContent: 'center' }}
                   onClick={() => setShowSuccessModal(false)}

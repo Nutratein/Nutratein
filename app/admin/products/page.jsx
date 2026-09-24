@@ -511,6 +511,7 @@ export default function AdminProducts() {
       <AnimatePresence>
         {showModal && (
           <div
+            className="admin-modal-overlay"
             style={{
               position: 'fixed',
               inset: 0,
@@ -525,6 +526,7 @@ export default function AdminProducts() {
             }}
           >
             <motion.div
+              className="admin-modal-box"
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
@@ -542,6 +544,7 @@ export default function AdminProducts() {
             >
               {/* Modal Header */}
               <div
+                className="admin-modal-header"
                 style={{
                   padding: '20px 24px',
                   borderBottom: '1px solid var(--color-border)',
@@ -568,7 +571,7 @@ export default function AdminProducts() {
               </div>
 
               {/* Modal Body with Live Preview */}
-              <form onSubmit={handleSubmit} style={{ overflowY: 'auto', padding: '24px', flex: 1 }}>
+              <form onSubmit={handleSubmit} className="admin-modal-body" style={{ overflowY: 'auto', padding: '24px', flex: 1 }}>
                 {error && (
                   <div style={{ background: 'rgba(220,38,38,0.12)', color: '#dc2626', padding: '10px 14px', borderRadius: 8, marginBottom: 16, fontSize: 13 }}>
                     {error}

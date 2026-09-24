@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { supabase } from '@/lib/supabaseClient';
 import { getSiteContent } from '@/lib/siteContent';
 import {
@@ -76,6 +77,7 @@ const TRUST_ITEMS = [
 ];
 
 export default function Footer() {
+  const pathname = usePathname();
   const [email, setEmail] = useState('');
   const [subscribed, setSubscribed] = useState(false);
   const [showScrollTop, setShowScrollTop] = useState(false);
@@ -83,19 +85,21 @@ export default function Footer() {
   const [socialLinks, setSocialLinks] = useState({});
 
   useEffect(() => {
+    if (pathname?.startsWith('/admin')) return;
     getSiteContent('home', {}).then((value) => {
       if (value?.contact) setSocialLinks(value.contact);
     });
-  }, []);
+  }, [pathname]);
 
   useEffect(() => {
+    if (pathname?.startsWith('/admin')) return;
     supabase
       .from('categories')
       .select('name, slug')
       .order('name')
       .limit(4)
       .then(({ data }) => setFooterCategories(data || []));
-  }, []);
+  }, [pathname]);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -124,6 +128,10 @@ export default function Footer() {
       setEmail('');
     }
   };
+
+  if (pathname?.startsWith('/admin')) {
+    return null;
+  }
 
   return (
     <footer className="modern-footer">

@@ -27,6 +27,7 @@ import {
   ShieldCheck,
   Search,
   ArrowRight,
+  ArrowLeftRight,
   Tag,
   Award,
   DollarSign,
@@ -39,8 +40,75 @@ import {
   ArrowDownCircle,
   ArrowUpCircle,
   XCircle,
-  Info
+  Info,
+  RefreshCw,
 } from 'lucide-react';
+
+// Real order.status values (see supabase/schema.sql): pending, processing, shipped, completed, cancelled.
+// "Delivered" is a customer-facing label for the "completed" status in Supabase.
+const ORDER_STATUS_META = {
+  pending: { label: 'Pending', icon: Clock, css: 'pending' },
+  processing: { label: 'Processing', icon: RefreshCw, css: 'processing' },
+  shipped: { label: 'Shipped', icon: Truck, css: 'shipped' },
+  completed: { label: 'Delivered', icon: CheckCircle2, css: 'completed' },
+  cancelled: { label: 'Cancelled', icon: XCircle, css: 'cancelled' },
+};
+
+function getOrderStatusMeta(status) {
+  const s = (status || 'pending').toLowerCase();
+  const normalized = s === 'delivered' ? 'completed' : s;
+  return ORDER_STATUS_META[normalized] || ORDER_STATUS_META.pending;
+}
+
+function getOrderTimelineInfo(rawStatus) {
+  const status = (rawStatus || 'pending').toLowerCase();
+  const normalized = status === 'delivered' ? 'completed' : status;
+
+  if (normalized === 'cancelled') {
+    return {
+      isCancelled: true,
+      progress: 0,
+      steps: [],
+    };
+  }
+
+  let progress = 18;
+  let placedState = 'completed';
+  let processingState = 'current';
+  let shippedState = 'upcoming';
+  let deliveredState = 'upcoming';
+
+  if (normalized === 'processing') {
+    progress = 48;
+    placedState = 'completed';
+    processingState = 'current';
+    shippedState = 'upcoming';
+    deliveredState = 'upcoming';
+  } else if (normalized === 'shipped') {
+    progress = 78;
+    placedState = 'completed';
+    processingState = 'completed';
+    shippedState = 'current';
+    deliveredState = 'upcoming';
+  } else if (normalized === 'completed') {
+    progress = 100;
+    placedState = 'completed';
+    processingState = 'completed';
+    shippedState = 'completed';
+    deliveredState = 'completed';
+  }
+
+  return {
+    isCancelled: false,
+    progress,
+    steps: [
+      { key: 'placed', label: 'Placed', state: placedState },
+      { key: 'processing', label: 'Processing', state: processingState },
+      { key: 'shipped', label: 'Shipped', state: shippedState },
+      { key: 'delivered', label: 'Delivered', state: deliveredState },
+    ],
+  };
+}
 
 function AccountContent() {
   const { user, profile, signOut, refreshProfile } = useAuth();
@@ -59,6 +127,16 @@ function AccountContent() {
       setActiveTab(tab);
     }
   }, [urlParams]);
+
+  // Deep-link support: /account?tab=profile#membership-panel also scrolls straight to that card
+  useEffect(() => {
+    const hash = typeof window !== 'undefined' ? window.location.hash?.slice(1) : '';
+    if (!hash) return;
+    const timer = setTimeout(() => {
+      document.getElementById(hash)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 150);
+    return () => clearTimeout(timer);
+  }, [activeTab]);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [expandedOrderId, setExpandedOrderId] = useState(null);
@@ -74,6 +152,7 @@ function AccountContent() {
   const [walletLoading, setWalletLoading] = useState(true);
   const [showAddMoney, setShowAddMoney] = useState(false);
   const [topupCurrency, setTopupCurrency] = useState('usd');
+  const [topupMethod, setTopupMethod] = useState('wire'); // 'wire' | 'etransfer' (etransfer only offered for CAD)
   const [topupAmount, setTopupAmount] = useState('');
   const [topupRef, setTopupRef] = useState('');
   const [topupProofUrl, setTopupProofUrl] = useState('');
@@ -95,6 +174,7 @@ function AccountContent() {
   });
   const [savingProfile, setSavingProfile] = useState(false);
   const [profileSaveError, setProfileSaveError] = useState('');
+  const [showMethodInfoModal, setShowMethodInfoModal] = useState(false);
 
   // Trigger temporary toast
   const showToast = (msg) => {
@@ -104,12 +184,12 @@ function AccountContent() {
     }, 3000);
   };
 
-  // Fetch orders for this user
+  // Fetch orders for this user & sync live with Supabase Realtime
   useEffect(() => {
     let isMounted = true;
-    const fetchOrders = async () => {
+    const fetchOrders = async (showLoading = true) => {
       if (!user) return;
-      setLoading(true);
+      if (showLoading) setLoading(true);
       try {
         let query = supabase
           .from('orders')
@@ -134,13 +214,58 @@ function AccountContent() {
       } catch (err) {
         console.error('Failed to load orders', err);
       } finally {
-        if (isMounted) setLoading(false);
+        if (isMounted && showLoading) setLoading(false);
       }
     };
 
-    fetchOrders();
+    fetchOrders(true);
+
+    // Live sync: Listen for status & dispatch changes made by admin
+    const channel = supabase
+      .channel(`realtime-orders-${user?.id || 'guest'}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'orders',
+        },
+        (payload) => {
+          if (payload.eventType === 'UPDATE' && payload.new && isMounted) {
+            setOrders((prev) =>
+              prev.map((o) =>
+                o.id === payload.new.id
+                  ? {
+                      ...o,
+                      ...payload.new,
+                      order_items: o.order_items || [],
+                    }
+                  : o
+              )
+            );
+          } else if (isMounted) {
+            fetchOrders(false);
+          }
+        }
+      )
+      .subscribe();
+
+    // Auto-poll interval (12s) to guarantee updates even if realtime replication is inactive
+    const pollTimer = setInterval(() => {
+      if (isMounted) fetchOrders(false);
+    }, 12000);
+
+    // Window focus refresh: user tabs between admin and customer view
+    const handleFocus = () => {
+      if (isMounted) fetchOrders(false);
+    };
+    window.addEventListener('focus', handleFocus);
+
     return () => {
       isMounted = false;
+      clearInterval(pollTimer);
+      window.removeEventListener('focus', handleFocus);
+      supabase.removeChannel(channel);
     };
   }, [user]);
 
@@ -173,6 +298,7 @@ function AccountContent() {
 
   function openAddMoney() {
     setTopupCurrency('usd');
+    setTopupMethod('wire');
     setTopupAmount('');
     setTopupRef('');
     setTopupProofUrl('');
@@ -204,7 +330,7 @@ function AccountContent() {
     if (!topupAmount || Number(topupAmount) <= 0) return;
     setTopupSubmitting(true);
     try {
-      const { error } = await createTopupRequest(user.id, topupCurrency, topupAmount, topupRef, topupProofUrl);
+      const { error } = await createTopupRequest(user.id, topupCurrency, topupAmount, topupRef, topupProofUrl, topupMethod);
       if (error) throw error;
       showToast(`Top-up request for ${topupCurrency.toUpperCase()} ${Number(topupAmount).toFixed(2)} submitted!`);
       setShowAddMoney(false);
@@ -316,7 +442,7 @@ function AccountContent() {
   const displayName =
     profile?.full_name ||
     user?.user_metadata?.full_name ||
-    (user?.email ? user.email.split('@')[0] : 'Nutratein Athlete');
+    (user?.email ? user.email.split('@')[0] : 'The Pep Shop Member');
 
   const userInitials = displayName
     .split(' ')
@@ -340,7 +466,7 @@ function AccountContent() {
     ).length;
   }, [orders]);
 
-  const nutraPoints = Math.floor(totalSpent * 10) + 150; // Base welcome bonus + 10x per dollar
+  const pepPoints = Math.floor(totalSpent * 10) + 150; // Base welcome bonus + 10x per dollar
 
   // Filtered orders list
   const filteredOrders = useMemo(() => {
@@ -405,10 +531,29 @@ function AccountContent() {
                 <ShieldCheck size={16} style={{ color: '#10b981' }} />
                 <span>{user?.email}</span>
               </div>
-              <span className="account-badge-pill">
-                <Sparkles size={13} />
-                Nutratein Elite Club
-              </span>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                <span className="account-badge-pill">
+                  <Sparkles size={13} />
+                  The Pep Shop Elite Club
+                </span>
+                {isActiveMember && (
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab('profile')}
+                    className="account-badge-pill"
+                    style={{
+                      background: 'rgba(212,175,55,0.12)',
+                      color: '#d4af37',
+                      borderColor: 'rgba(212,175,55,0.35)',
+                      cursor: 'pointer',
+                    }}
+                    title="View membership details"
+                  >
+                    <ShieldCheck size={13} />
+                    Apex Vault Member &bull; {daysRemaining}d left
+                  </button>
+                )}
+              </div>
             </div>
           </div>
 
@@ -490,9 +635,9 @@ function AccountContent() {
               <Award size={22} />
             </div>
             <div>
-              <div className="account-stat-label">NutraPoints</div>
+              <div className="account-stat-label">PepPoints</div>
               <div className="account-stat-value">
-                {loading ? '—' : nutraPoints.toLocaleString()}
+                {loading ? '—' : pepPoints.toLocaleString()}
               </div>
             </div>
           </motion.div>
@@ -551,7 +696,7 @@ function AccountContent() {
               </div>
 
               <div className="account-status-pills">
-                {['all', 'delivered', 'processing', 'pending'].map((st) => (
+                {['all', 'pending', 'processing', 'shipped', 'completed', 'cancelled'].map((st) => (
                   <button
                     key={st}
                     className={`account-status-pill-btn ${
@@ -559,9 +704,7 @@ function AccountContent() {
                     }`}
                     onClick={() => setStatusFilter(st)}
                   >
-                    {st === 'all'
-                      ? 'All Orders'
-                      : st.charAt(0).toUpperCase() + st.slice(1)}
+                    {st === 'all' ? 'All Orders' : getOrderStatusMeta(st).label}
                   </button>
                 ))}
               </div>
@@ -591,10 +734,10 @@ function AccountContent() {
                 <p>
                   {searchQuery || statusFilter !== 'all'
                     ? 'No orders match your search or filter criteria. Try resetting filters.'
-                    : "You haven't placed any nutrition orders yet. Fuel your body with our premium protein blends and science-backed supplements."}
+                    : "You haven't placed any orders yet. Explore our premium catalog of high-purity peptides and research compounds."}
                 </p>
                 <Link href="/shop" className="account-btn-primary" style={{ display: 'inline-flex' }}>
-                  <span>Explore Nutratein Shop</span>
+                  <span>Explore The Pep Shop</span>
                   <ArrowRight size={16} />
                 </Link>
               </motion.div>
@@ -607,7 +750,9 @@ function AccountContent() {
                     month: 'short',
                     day: 'numeric',
                   });
-                  const status = (order.status || 'processing').toLowerCase();
+                  const statusMeta = getOrderStatusMeta(order.status);
+                  const StatusIcon = statusMeta.icon;
+                  const timelineInfo = getOrderTimelineInfo(order.status);
                   const totalItems =
                     order.order_items?.reduce((sum, item) => sum + item.quantity, 0) || 0;
 
@@ -643,11 +788,12 @@ function AccountContent() {
                         </div>
 
                         <div className="account-order-header-right">
-                          <span className={`account-status-tag ${status}`}>
-                            {status === 'delivered' && <CheckCircle2 size={13} />}
-                            {status === 'processing' && <Clock size={13} />}
-                            {status === 'pending' && <Truck size={13} />}
-                            {order.status || 'Processing'}
+                          <span className={`account-status-tag ${statusMeta.css}`}>
+                            <StatusIcon
+                              size={13}
+                              className={statusMeta.css === 'processing' ? 'animate-spin' : ''}
+                            />
+                            {statusMeta.label}
                           </span>
                           <span className="account-order-total-highlight">
                             ${Number(order.total).toFixed(2)}
@@ -670,8 +816,8 @@ function AccountContent() {
                                     height: 44, 
                                     overflow: 'hidden', 
                                     padding: 3, 
-                                    background: '#171b23',
-                                    border: '1px solid var(--color-border)',
+                                    background: '#171b23', 
+                                    border: '1px solid var(--color-border)', 
                                     borderRadius: 8,
                                     display: 'flex',
                                     alignItems: 'center',
@@ -728,49 +874,156 @@ function AccountContent() {
                           >
                             {/* Visual Delivery Timeline */}
                             <div className="account-timeline-box">
-                              <div className="account-timeline-title">Shipment Progress</div>
-                              <div className="account-order-timeline">
-                                <div className="account-timeline-step">
-                                  <div className="account-step-bubble completed">
-                                    <Check size={14} />
-                                  </div>
-                                  <span className="account-step-label">Placed</span>
+                              <div
+                                style={{
+                                  display: 'flex',
+                                  justifyContent: 'space-between',
+                                  alignItems: 'center',
+                                  marginBottom: 14,
+                                }}
+                              >
+                                <div className="account-timeline-title" style={{ margin: 0 }}>
+                                  Fulfillment &amp; Dispatch Tracking
                                 </div>
-                                <div className="account-timeline-step">
-                                  <div
-                                    className={`account-step-bubble ${
-                                      status !== 'pending' ? 'completed' : 'current'
-                                    }`}
-                                  >
-                                    <Clock size={14} />
-                                  </div>
-                                  <span className="account-step-label">Confirmed</span>
-                                </div>
-                                <div className="account-timeline-step">
-                                  <div
-                                    className={`account-step-bubble ${
-                                      status === 'delivered'
-                                        ? 'completed'
-                                        : status === 'processing'
-                                        ? 'current'
-                                        : ''
-                                    }`}
-                                  >
-                                    <Truck size={14} />
-                                  </div>
-                                  <span className="account-step-label">Shipped</span>
-                                </div>
-                                <div className="account-timeline-step">
-                                  <div
-                                    className={`account-step-bubble ${
-                                      status === 'delivered' ? 'completed' : ''
-                                    }`}
-                                  >
-                                    <CheckCircle2 size={14} />
-                                  </div>
-                                  <span className="account-step-label">Delivered</span>
+                                <div
+                                  style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: 6,
+                                    fontSize: 11.5,
+                                    color: '#34d399',
+                                    fontWeight: 650,
+                                  }}
+                                >
+                                  <span
+                                    style={{
+                                      width: 7,
+                                      height: 7,
+                                      borderRadius: '50%',
+                                      background: '#10b981',
+                                      display: 'inline-block',
+                                      boxShadow: '0 0 6px #10b981',
+                                    }}
+                                  />
+                                  Live Sync
                                 </div>
                               </div>
+
+                              {timelineInfo.isCancelled ? (
+                                <div className="account-cancelled-banner">
+                                  <XCircle size={22} style={{ color: '#ef4444', flexShrink: 0 }} />
+                                  <div>
+                                    <strong style={{ color: '#f87171', display: 'block', marginBottom: 2 }}>
+                                      Order Cancelled
+                                    </strong>
+                                    <span>
+                                      This order has been cancelled by administration. No further courier dispatch is scheduled.
+                                    </span>
+                                  </div>
+                                </div>
+                              ) : (
+                                <>
+                                  <div className="account-order-timeline">
+                                    <div className="account-order-timeline-track">
+                                      <div
+                                        className="account-order-timeline-fill"
+                                        style={{ width: `${timelineInfo.progress}%` }}
+                                      />
+                                    </div>
+
+                                    {timelineInfo.steps.map((step) => {
+                                      const isDone = step.state === 'completed';
+                                      const isCurrent = step.state === 'current';
+                                      return (
+                                        <div key={step.key} className="account-timeline-step">
+                                          <div
+                                            className={`account-step-bubble ${
+                                              isDone ? 'completed' : isCurrent ? 'current' : ''
+                                            }`}
+                                          >
+                                            {isDone ? (
+                                              <Check size={15} strokeWidth={2.8} />
+                                            ) : isCurrent ? (
+                                              step.key === 'processing' ? (
+                                                <RefreshCw size={13} className="animate-spin" />
+                                              ) : step.key === 'shipped' ? (
+                                                <Truck size={14} />
+                                              ) : (
+                                                <Clock size={13} />
+                                              )
+                                            ) : step.key === 'shipped' ? (
+                                              <Truck size={14} />
+                                            ) : step.key === 'delivered' ? (
+                                              <CheckCircle2 size={14} />
+                                            ) : (
+                                              <Package size={14} />
+                                            )}
+                                          </div>
+                                          <span className="account-step-label">{step.label}</span>
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+
+                                  {/* Courier & Tracking Number Banner */}
+                                  {order.shipping_address?.tracking_number && (
+                                    <div className="account-tracking-info-banner">
+                                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                                        <div
+                                          style={{
+                                            width: 32,
+                                            height: 32,
+                                            borderRadius: 8,
+                                            background: 'rgba(0,102,255,0.15)',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            color: 'var(--color-brand)',
+                                          }}
+                                        >
+                                          <Truck size={17} />
+                                        </div>
+                                        <div>
+                                          <div style={{ fontSize: 12, color: '#94a3b8' }}>
+                                            Carrier:{' '}
+                                            <strong style={{ color: 'var(--color-ink)' }}>
+                                              {order.shipping_address.carrier || 'Express Tracked Courier'}
+                                            </strong>
+                                          </div>
+                                          <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--color-ink)', letterSpacing: '0.03em' }}>
+                                            Tracking #: {order.shipping_address.tracking_number}
+                                          </div>
+                                        </div>
+                                      </div>
+                                      {order.shipping_address.tracking_url ? (
+                                        <a
+                                          href={order.shipping_address.tracking_url}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                          className="account-btn-secondary"
+                                          style={{ padding: '6px 14px', fontSize: 12, textDecoration: 'none' }}
+                                        >
+                                          <span>Track with Courier</span>
+                                          <ExternalLink size={13} />
+                                        </a>
+                                      ) : (
+                                        <button
+                                          type="button"
+                                          className="account-btn-secondary"
+                                          style={{ padding: '6px 14px', fontSize: 12 }}
+                                          onClick={() => {
+                                            navigator.clipboard.writeText(order.shipping_address.tracking_number);
+                                            showToast(`Tracking #${order.shipping_address.tracking_number} copied!`);
+                                          }}
+                                        >
+                                          <Copy size={13} />
+                                          <span>Copy Tracking #</span>
+                                        </button>
+                                      )}
+                                    </div>
+                                  )}
+                                </>
+                              )}
                             </div>
 
                             {/* Shipping Details */}
@@ -838,9 +1091,10 @@ function AccountContent() {
                           <Link
                             href={`/order-confirmation/${order.id}`}
                             className="account-btn-secondary"
-                            style={{ padding: '6px 14px', fontSize: 12.5 }}
+                            style={{ padding: '6px 14px', fontSize: 12.5, display: 'inline-flex', alignItems: 'center', gap: 6 }}
                           >
-                            Order Receipt
+                            <Truck size={13} style={{ color: '#38bdf8' }} />
+                            <span>Live Tracking & Receipt</span>
                           </Link>
                         </div>
                       </div>
@@ -874,12 +1128,22 @@ function AccountContent() {
             >
               <Info size={18} style={{ color: 'var(--color-brand)', flexShrink: 0, marginTop: 1 }} />
               <p style={{ margin: 0, fontSize: 13, lineHeight: 1.6, color: 'var(--color-ink-soft)' }}>
-                <strong style={{ color: 'var(--color-ink)' }}>How it works:</strong> Send a wire transfer,
-                submit the reference number below, and we&apos;ll credit your Wallet once the funds arrive
+                <strong style={{ color: 'var(--color-ink)' }}>How it works:</strong> Send an Interac e-Transfer or wire transfer,
+                submit the confirmation / reference number below, and we&apos;ll credit your Wallet once the funds arrive
                 (usually within a few hours). After that, pay for any order or membership instantly from your
-                Wallet — no waiting on a new wire for every purchase.{' '}
-                <Link href="/faq#wallet-what" style={{ color: 'var(--color-brand)', fontWeight: 700 }}>
-                  Read the full FAQ →
+                Wallet — no waiting on new transfers for every purchase.{' '}
+                <button
+                  type="button"
+                  onClick={() => setShowMethodInfoModal(true)}
+                  style={{ background: 'none', border: 'none', padding: 0, display: 'inline-flex', alignItems: 'center', gap: 4, color: 'var(--color-brand)', fontWeight: 700, fontSize: 13, cursor: 'pointer', textDecoration: 'underline' }}
+                >
+                  Compare Wire vs e-Transfer
+                  <ArrowLeftRight size={13} />
+                </button>
+                {' · '}
+                <Link href="/faq#wallet-etransfer" style={{ display: 'inline-flex', alignItems: 'center', gap: 4, color: 'var(--color-brand)', fontWeight: 700 }}>
+                  Read the full FAQ
+                  <ArrowRight size={13} />
                 </Link>
               </p>
             </div>
@@ -949,6 +1213,11 @@ function AccountContent() {
                     >
                       <div>
                         <strong>{t.currency.toUpperCase()} {Number(t.amount).toFixed(2)}</strong>
+                        {t.method === 'etransfer' && (
+                          <span style={{ marginLeft: 8, fontSize: 10.5, fontWeight: 700, padding: '2px 7px', borderRadius: 999, background: 'rgba(59,130,246,0.12)', color: '#3b82f6' }}>
+                            e-Transfer
+                          </span>
+                        )}
                         <div style={{ fontSize: 12, color: '#94a3b8' }}>
                           {new Date(t.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
                           {t.reference_note ? ` · Ref: ${t.reference_note}` : ''}
@@ -1033,6 +1302,80 @@ function AccountContent() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.2 }}
           >
+            {/* Apex Vault Membership Status — its own dedicated panel, spans full width, shown first */}
+            <div id="membership-panel" className="account-card-panel" style={{ gridColumn: '1 / -1', scrollMarginTop: 100 }}>
+              <div className="account-panel-header">
+                <div className="account-panel-title">
+                  <ShieldCheck size={18} className="text-brand" style={{ color: '#0066ff' }} />
+                  <span>Apex Vault Membership</span>
+                </div>
+                {isActiveMember && (
+                  <span className="account-badge-pill" style={{ background: 'rgba(52,211,153,0.12)', color: '#34d399', borderColor: 'rgba(52,211,153,0.35)' }}>
+                    <Sparkles size={13} />
+                    Active
+                  </span>
+                )}
+              </div>
+
+              {isActiveMember ? (
+                <>
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      gap: 20,
+                      flexWrap: 'wrap',
+                      background: 'rgba(52,211,153,0.06)',
+                      border: '1px solid rgba(52,211,153,0.25)',
+                      borderRadius: 14,
+                      padding: '26px 28px',
+                      marginBottom: 18,
+                    }}
+                  >
+                    <div>
+                      <div style={{ fontSize: 13.5, color: '#a8adb4', marginBottom: 6 }}>Days Remaining</div>
+                      <div style={{ fontSize: 38, fontWeight: 800, color: '#34d399', lineHeight: 1 }}>{daysRemaining}</div>
+                    </div>
+                    <div style={{ textAlign: 'right' }}>
+                      <div style={{ fontSize: 13.5, color: '#a8adb4', marginBottom: 6 }}>Renews / Expires On</div>
+                      <div style={{ fontSize: 16.5, fontWeight: 700 }}>
+                        {new Date(profile.membership_expires_at).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Visual countdown bar (out of 365 days) */}
+                  <div style={{ height: 10, borderRadius: 999, background: '#171b23', overflow: 'hidden', marginBottom: 20 }}>
+                    <div
+                      style={{
+                        height: '100%',
+                        width: `${Math.min(100, Math.max(3, (daysRemaining / 365) * 100))}%`,
+                        background: 'linear-gradient(90deg, #34d399, #10b981)',
+                        borderRadius: 999,
+                      }}
+                    />
+                  </div>
+
+                  <Link href="/membership" className="account-btn-secondary" style={{ display: 'inline-flex', padding: '12px 20px', fontSize: 14 }}>
+                    <ShieldCheck size={16} />
+                    <span>Manage / Renew Membership</span>
+                  </Link>
+                </>
+              ) : (
+                <>
+                  <p style={{ color: '#a8adb4', fontSize: 13.5, margin: '0 0 16px' }}>
+                    You&apos;re not an Apex Vault member yet. Unlock priority batch access, exclusive
+                    pricing, and dedicated research support.
+                  </p>
+                  <Link href="/membership" className="account-btn-primary" style={{ display: 'inline-flex' }}>
+                    <Sparkles size={15} />
+                    <span>Join Apex Vault</span>
+                  </Link>
+                </>
+              )}
+            </div>
+
             <div className="account-card-panel">
               <div className="account-panel-header">
                 <div className="account-panel-title">
@@ -1080,80 +1423,6 @@ function AccountContent() {
                   End Active Session
                 </button>
               </div>
-            </div>
-
-            {/* Apex Vault Membership Status — its own dedicated panel, spans full width */}
-            <div className="account-card-panel" style={{ gridColumn: '1 / -1' }}>
-              <div className="account-panel-header">
-                <div className="account-panel-title">
-                  <ShieldCheck size={18} className="text-brand" style={{ color: '#0066ff' }} />
-                  <span>Apex Vault Membership</span>
-                </div>
-                {isActiveMember && (
-                  <span className="account-badge-pill" style={{ background: 'rgba(52,211,153,0.12)', color: '#34d399', borderColor: 'rgba(52,211,153,0.35)' }}>
-                    <Sparkles size={13} />
-                    Active
-                  </span>
-                )}
-              </div>
-
-              {isActiveMember ? (
-                <>
-                  <div
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      gap: 12,
-                      flexWrap: 'wrap',
-                      background: 'rgba(52,211,153,0.06)',
-                      border: '1px solid rgba(52,211,153,0.25)',
-                      borderRadius: 12,
-                      padding: '14px 16px',
-                      marginBottom: 14,
-                    }}
-                  >
-                    <div>
-                      <div style={{ fontSize: 13, color: '#a8adb4', marginBottom: 4 }}>Days Remaining</div>
-                      <div style={{ fontSize: 26, fontWeight: 800, color: '#34d399', lineHeight: 1 }}>{daysRemaining}</div>
-                    </div>
-                    <div style={{ textAlign: 'right' }}>
-                      <div style={{ fontSize: 13, color: '#a8adb4', marginBottom: 4 }}>Renews / Expires On</div>
-                      <div style={{ fontSize: 14.5, fontWeight: 700 }}>
-                        {new Date(profile.membership_expires_at).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Visual countdown bar (out of 365 days) */}
-                  <div style={{ height: 8, borderRadius: 999, background: '#171b23', overflow: 'hidden', marginBottom: 14 }}>
-                    <div
-                      style={{
-                        height: '100%',
-                        width: `${Math.min(100, Math.max(3, (daysRemaining / 365) * 100))}%`,
-                        background: 'linear-gradient(90deg, #34d399, #10b981)',
-                        borderRadius: 999,
-                      }}
-                    />
-                  </div>
-
-                  <Link href="/membership" className="account-btn-secondary" style={{ display: 'inline-flex' }}>
-                    <ShieldCheck size={15} />
-                    <span>Manage / Renew Membership</span>
-                  </Link>
-                </>
-              ) : (
-                <>
-                  <p style={{ color: '#a8adb4', fontSize: 13.5, margin: '0 0 16px' }}>
-                    You&apos;re not an Apex Vault member yet. Unlock priority batch access, exclusive
-                    pricing, and dedicated research support.
-                  </p>
-                  <Link href="/membership" className="account-btn-primary" style={{ display: 'inline-flex' }}>
-                    <Sparkles size={15} />
-                    <span>Join Apex Vault</span>
-                  </Link>
-                </>
-              )}
             </div>
           </motion.div>
         )}
@@ -1287,6 +1556,66 @@ function AccountContent() {
                       </div>
                     </div>
 
+                    <div style={{ marginBottom: 16 }}>
+                      <label style={{ display: 'block', fontSize: 12.5, fontWeight: 700, marginBottom: 8 }}>
+                        Top-up Method
+                      </label>
+                      <div style={{ display: 'flex', gap: 10 }}>
+                        {[
+                          { id: 'wire', label: 'Wire Transfer' },
+                          { id: 'etransfer', label: topupCurrency === 'cad' ? 'Interac e-Transfer' : 'e-Transfer' },
+                        ].map((m) => (
+                          <button
+                            key={m.id}
+                            type="button"
+                            onClick={() => setTopupMethod(m.id)}
+                            style={{
+                              flex: 1,
+                              padding: '10px 12px',
+                              borderRadius: 8,
+                              border: topupMethod === m.id ? '1.5px solid var(--color-brand)' : '1.5px solid var(--color-border)',
+                              background: topupMethod === m.id ? 'rgba(0,102,255,0.08)' : 'transparent',
+                              color: topupMethod === m.id ? 'var(--color-brand)' : 'inherit',
+                              fontWeight: 700,
+                              fontSize: 13,
+                              cursor: 'pointer',
+                            }}
+                          >
+                            {m.label}
+                          </button>
+                        ))}
+                      </div>
+                      <div
+                        style={{
+                          display: 'flex',
+                          gap: 8,
+                          alignItems: 'flex-start',
+                          marginTop: 10,
+                          padding: '10px 12px',
+                          borderRadius: 8,
+                          background: 'rgba(0,102,255,0.05)',
+                          border: '1px solid rgba(0,102,255,0.15)',
+                        }}
+                      >
+                        <Info size={14} style={{ color: 'var(--color-brand)', flexShrink: 0, marginTop: 1 }} />
+                        <p style={{ margin: 0, fontSize: 12, lineHeight: 1.55, color: 'var(--color-ink-soft)' }}>
+                          {topupMethod === 'etransfer' ? (
+                            <>
+                              <strong style={{ color: 'var(--color-ink)' }}>e-Transfer:</strong> send from your online
+                              banking app to just an <strong>email address</strong> — no account/routing numbers
+                              needed. Usually the fastest option, often credited within minutes.
+                            </>
+                          ) : (
+                            <>
+                              <strong style={{ color: 'var(--color-ink)' }}>Wire Transfer:</strong> send directly to our
+                              bank account using the <strong>account &amp; routing/transit numbers</strong> we
+                              provide. Works from any bank, including outside Canada, but can take longer to arrive.
+                            </>
+                          )}
+                        </p>
+                      </div>
+                    </div>
+
                     {(() => {
                       const min = Number(walletSettings?.[`min_topup_${topupCurrency}`] ?? 10);
                       const max = Number(walletSettings?.[`max_topup_${topupCurrency}`] ?? 10000);
@@ -1331,54 +1660,102 @@ function AccountContent() {
 
                 {topupStep === 2 && (
                   <form onSubmit={handleSubmitTopup}>
-                    <p style={{ fontSize: 13, color: '#a8adb4', marginTop: 0 }}>
-                      Send <strong>{topupCurrency.toUpperCase()} {Number(topupAmount).toFixed(2)}</strong> by wire transfer to the account below, then submit your reference number.
-                    </p>
+                    {topupMethod === 'etransfer' ? (
+                      <>
+                        <p style={{ fontSize: 13, color: '#a8adb4', marginTop: 0 }}>
+                          Send <strong>{topupCurrency.toUpperCase()} {Number(topupAmount).toFixed(2)}</strong> via
+                          {topupCurrency === 'cad' ? ' Interac e-Transfer' : ' e-Transfer'} to the recipient below, then submit your confirmation number.
+                        </p>
 
-                    <div style={{ background: '#171b23', border: '1px solid var(--color-border)', borderRadius: 10, padding: 14, marginBottom: 16, fontSize: 13 }}>
-                      {(() => {
-                        const bank = topupCurrency === 'usd' ? walletSettings?.usd_bank : walletSettings?.cad_bank;
-                        if (!bank || !bank.account_number) {
-                          return (
-                            <span style={{ color: '#94a3b8' }}>
-                              Bank details have not been configured yet. Contact support for wire instructions.
-                            </span>
-                          );
-                        }
-                        return (
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                            <div><strong>Bank:</strong> {bank.bank_name}</div>
-                            <div><strong>Account Name:</strong> {bank.account_name}</div>
-                            <div><strong>Account Number:</strong> {bank.account_number}</div>
-                            {topupCurrency === 'usd' ? (
-                              <div><strong>Routing Number:</strong> {bank.routing_number}</div>
-                            ) : (
-                              <>
-                                <div><strong>Transit Number:</strong> {bank.transit_number}</div>
-                                <div><strong>Institution Number:</strong> {bank.institution_number}</div>
-                              </>
-                            )}
-                            {bank.swift && <div><strong>SWIFT:</strong> {bank.swift}</div>}
-                          </div>
-                        );
-                      })()}
-                    </div>
+                        <div style={{ background: '#171b23', border: '1px solid var(--color-border)', borderRadius: 10, padding: 14, marginBottom: 16, fontSize: 13 }}>
+                          {(() => {
+                            const et = topupCurrency === 'usd' ? walletSettings?.usd_etransfer : walletSettings?.cad_etransfer;
+                            if (!et || !et.email) {
+                              return (
+                                <span style={{ color: '#94a3b8' }}>
+                                  e-Transfer details have not been configured yet. Contact support for instructions.
+                                </span>
+                              );
+                            }
+                            return (
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                                <div><strong>Send To (Email):</strong> {et.email}</div>
+                                {et.recipient_name && <div><strong>Recipient Name:</strong> {et.recipient_name}</div>}
+                                {et.security_question && <div><strong>Security Question:</strong> {et.security_question}</div>}
+                                {et.security_answer && <div><strong>Security Answer:</strong> {et.security_answer}</div>}
+                              </div>
+                            );
+                          })()}
+                        </div>
 
-                    {walletSettings?.instructions && (
-                      <p style={{ fontSize: 12, color: '#94a3b8', marginBottom: 16 }}>{walletSettings.instructions}</p>
+                        {walletSettings?.instructions && (
+                          <p style={{ fontSize: 12, color: '#94a3b8', marginBottom: 16 }}>{walletSettings.instructions}</p>
+                        )}
+
+                        <div style={{ marginBottom: 20 }}>
+                          <label style={{ display: 'block', fontSize: 12.5, fontWeight: 700, marginBottom: 8 }}>
+                            e-Transfer Confirmation Number
+                          </label>
+                          <input
+                            value={topupRef}
+                            onChange={(e) => setTopupRef(e.target.value)}
+                            placeholder="e.g. INTAC123456789"
+                            style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1.5px solid var(--color-border)', fontSize: 14, boxSizing: 'border-box' }}
+                          />
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <p style={{ fontSize: 13, color: '#a8adb4', marginTop: 0 }}>
+                          Send <strong>{topupCurrency.toUpperCase()} {Number(topupAmount).toFixed(2)}</strong> by wire transfer to the account below, then submit your reference number.
+                        </p>
+
+                        <div style={{ background: '#171b23', border: '1px solid var(--color-border)', borderRadius: 10, padding: 14, marginBottom: 16, fontSize: 13 }}>
+                          {(() => {
+                            const bank = topupCurrency === 'usd' ? walletSettings?.usd_bank : walletSettings?.cad_bank;
+                            if (!bank || !bank.account_number) {
+                              return (
+                                <span style={{ color: '#94a3b8' }}>
+                                  Bank details have not been configured yet. Contact support for wire instructions.
+                                </span>
+                              );
+                            }
+                            return (
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                                <div><strong>Bank:</strong> {bank.bank_name}</div>
+                                <div><strong>Account Name:</strong> {bank.account_name}</div>
+                                <div><strong>Account Number:</strong> {bank.account_number}</div>
+                                {topupCurrency === 'usd' ? (
+                                  <div><strong>Routing Number:</strong> {bank.routing_number}</div>
+                                ) : (
+                                  <>
+                                    <div><strong>Transit Number:</strong> {bank.transit_number}</div>
+                                    <div><strong>Institution Number:</strong> {bank.institution_number}</div>
+                                  </>
+                                )}
+                                {bank.swift && <div><strong>SWIFT:</strong> {bank.swift}</div>}
+                              </div>
+                            );
+                          })()}
+                        </div>
+
+                        {walletSettings?.instructions && (
+                          <p style={{ fontSize: 12, color: '#94a3b8', marginBottom: 16 }}>{walletSettings.instructions}</p>
+                        )}
+
+                        <div style={{ marginBottom: 20 }}>
+                          <label style={{ display: 'block', fontSize: 12.5, fontWeight: 700, marginBottom: 8 }}>
+                            Wire Reference / Confirmation Number
+                          </label>
+                          <input
+                            value={topupRef}
+                            onChange={(e) => setTopupRef(e.target.value)}
+                            placeholder="e.g. TXN123456789"
+                            style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1.5px solid var(--color-border)', fontSize: 14, boxSizing: 'border-box' }}
+                          />
+                        </div>
+                      </>
                     )}
-
-                    <div style={{ marginBottom: 20 }}>
-                      <label style={{ display: 'block', fontSize: 12.5, fontWeight: 700, marginBottom: 8 }}>
-                        Wire Reference / Confirmation Number
-                      </label>
-                      <input
-                        value={topupRef}
-                        onChange={(e) => setTopupRef(e.target.value)}
-                        placeholder="e.g. TXN123456789"
-                        style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1.5px solid var(--color-border)', fontSize: 14, boxSizing: 'border-box' }}
-                      />
-                    </div>
 
                     <div style={{ marginBottom: 20 }}>
                       <label style={{ display: 'block', fontSize: 12.5, fontWeight: 700, marginBottom: 8 }}>
@@ -1405,7 +1782,7 @@ function AccountContent() {
                         </div>
                       )}
                       <p style={{ fontSize: 11.5, color: '#94a3b8', margin: '6px 0 0' }}>
-                        A screenshot or photo of your wire transfer receipt helps us approve faster.
+                        A screenshot or photo of your e-Transfer or wire transfer receipt helps us approve faster.
                       </p>
                     </div>
 
@@ -1597,6 +1974,145 @@ function AccountContent() {
                   </button>
                 </div>
               </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* WIRE vs e-TRANSFER COMPARISON MODAL */}
+      <AnimatePresence>
+        {showMethodInfoModal && (
+          <div
+            style={{
+              position: 'fixed',
+              inset: 0,
+              background: 'rgba(15, 23, 42, 0.65)',
+              backdropFilter: 'blur(6px)',
+              zIndex: 9999,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: 20,
+              overflowY: 'auto',
+            }}
+            onClick={() => setShowMethodInfoModal(false)}
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              onClick={(e) => e.stopPropagation()}
+              style={{
+                background: 'var(--color-surface)',
+                borderRadius: 20,
+                maxWidth: 680,
+                width: '100%',
+                maxHeight: '90vh',
+                display: 'flex',
+                flexDirection: 'column',
+                boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.55)',
+                overflow: 'hidden',
+              }}
+            >
+              <div
+                style={{
+                  padding: '20px 24px',
+                  borderBottom: '1px solid var(--color-border)',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  background: '#171b23',
+                }}
+              >
+                <h3 style={{ margin: 0, fontSize: 18, fontWeight: 800 }}>Wire Transfer vs e-Transfer</h3>
+                <button
+                  onClick={() => setShowMethodInfoModal(false)}
+                  style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#a8adb4' }}
+                >
+                  <X size={20} />
+                </button>
+              </div>
+
+              <div style={{ overflowY: 'auto', padding: 24 }}>
+                <p style={{ margin: '0 0 22px', fontSize: 13.5, color: '#a8adb4', lineHeight: 1.6 }}>
+                  Both are just ways to send us money so we can add it to your Wallet. Pick whichever is easier
+                  from your own bank — here&apos;s exactly what to do for each one, step by step.
+                </p>
+
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 16 }}>
+                  {[
+                    {
+                      icon: Building,
+                      color: 'var(--color-brand)',
+                      title: 'Wire Transfer',
+                      tagline: 'Best if your bank doesn’t support e-Transfer, or you’re outside Canada.',
+                      steps: [
+                        'Choose "Wire Transfer" and enter how much you want to add.',
+                        'We show you our bank account number + routing/transit number.',
+                        'Open your own banking app and send a transfer to that account.',
+                        'Your bank gives you a confirmation number — type it in here.',
+                        'We verify the funds and credit your Wallet, usually within a few hours.',
+                      ],
+                    },
+                    {
+                      icon: Wallet,
+                      color: '#3b82f6',
+                      title: 'e-Transfer',
+                      tagline: 'Best if your bank supports it — simplest and usually fastest.',
+                      steps: [
+                        'Choose "e-Transfer" and enter how much you want to add.',
+                        'We show you an email address to send it to (plus a security question, if set).',
+                        'Open your banking app, find "Interac e-Transfer" / "Send Money", and send to that email.',
+                        'Your bank gives you a confirmation number — type it in here.',
+                        'We verify the funds and credit your Wallet, often within minutes.',
+                      ],
+                    },
+                  ].map((method) => (
+                    <div key={method.title} style={{ background: '#171b23', border: '1px solid var(--color-border)', borderRadius: 12, padding: 18 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                        <method.icon size={18} style={{ color: method.color }} />
+                        <strong style={{ fontSize: 15 }}>{method.title}</strong>
+                      </div>
+                      <p style={{ margin: '0 0 14px', fontSize: 12, color: '#94a3b8', lineHeight: 1.5 }}>
+                        {method.tagline}
+                      </p>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                        {method.steps.map((step, i) => (
+                          <div key={i} style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+                            <span
+                              style={{
+                                flexShrink: 0,
+                                width: 20,
+                                height: 20,
+                                borderRadius: '50%',
+                                background: `${method.color}22`,
+                                color: method.color,
+                                fontSize: 11,
+                                fontWeight: 800,
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                              }}
+                            >
+                              {i + 1}
+                            </span>
+                            <span style={{ fontSize: 13, color: '#d1d5db', lineHeight: 1.5 }}>{step}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <p style={{ margin: '20px 0 0', fontSize: 12.5, color: '#94a3b8' }}>
+                  Still confused? Just pick one, follow the steps above, and reach out from Contact Us if you get
+                  stuck — we&apos;ll help you finish it.{' '}
+                  <Link href="/faq#wallet-etransfer" style={{ display: 'inline-flex', alignItems: 'center', gap: 4, color: 'var(--color-brand)', fontWeight: 700 }} onClick={() => setShowMethodInfoModal(false)}>
+                    Read the full FAQ
+                    <ArrowRight size={13} />
+                  </Link>
+                </p>
+              </div>
             </motion.div>
           </div>
         )}

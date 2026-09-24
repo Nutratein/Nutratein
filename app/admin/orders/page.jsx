@@ -26,7 +26,9 @@ import {
   Receipt,
   Truck as TruckIcon,
   StickyNote,
+  Printer,
 } from 'lucide-react';
+import PrintableInvoice from '@/components/PrintableInvoice';
 
 const STATUSES = ['pending', 'processing', 'shipped', 'completed', 'cancelled'];
 
@@ -103,15 +105,72 @@ export default function AdminOrders() {
     load();
   }, []);
 
-  async function updateStatus(id, status) {
-    setOrders((prev) => prev.map((o) => (o.id === id ? { ...o, status } : o)));
-    setSelectedOrder((prev) => (prev && prev.id === id ? { ...prev, status } : prev));
+  async function updateStatus(id, newStatus, trackingInfo = null) {
+    const cleanStatus = newStatus.toLowerCase();
+    setOrders((prev) =>
+      prev.map((o) => {
+        if (o.id !== id) return o;
+        const updatedAddr = trackingInfo
+          ? {
+              ...(o.shipping_address || {}),
+              carrier: trackingInfo.carrier,
+              tracking_number: trackingInfo.trackingNumber,
+              tracking_url: trackingInfo.trackingUrl,
+            }
+          : o.shipping_address;
+        return { ...o, status: cleanStatus, shipping_address: updatedAddr };
+      })
+    );
+
+    setSelectedOrder((prev) => {
+      if (!prev || prev.id !== id) return prev;
+      const updatedAddr = trackingInfo
+        ? {
+            ...(prev.shipping_address || {}),
+            carrier: trackingInfo.carrier,
+            tracking_number: trackingInfo.trackingNumber,
+            tracking_url: trackingInfo.trackingUrl,
+          }
+        : prev.shipping_address;
+      return { ...prev, status: cleanStatus, shipping_address: updatedAddr };
+    });
+
     try {
-      const { error } = await supabase.from('orders').update({ status }).eq('id', id);
-      if (error) throw error;
-      showToast(`Order #${id.slice(0, 8).toUpperCase()} updated to "${status}"`);
+      // 1. Primary: Server-side API with service-role bypass
+      const res = await fetch('/api/admin/orders/status', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          orderId: id,
+          status: cleanStatus,
+          carrier: trackingInfo?.carrier,
+          trackingNumber: trackingInfo?.trackingNumber,
+          trackingUrl: trackingInfo?.trackingUrl,
+        }),
+      });
+
+      if (!res.ok) {
+        // Fallback: direct Supabase client
+        const updatePayload = { status: cleanStatus };
+        if (trackingInfo) {
+          updatePayload.shipping_address = {
+            ...(selectedOrder?.shipping_address || {}),
+            carrier: trackingInfo.carrier,
+            tracking_number: trackingInfo.trackingNumber,
+            tracking_url: trackingInfo.trackingUrl,
+          };
+        }
+        const { error: clientErr } = await supabase
+          .from('orders')
+          .update(updatePayload)
+          .eq('id', id);
+        if (clientErr) throw clientErr;
+      }
+
+      showToast(`Order #${id.slice(0, 8).toUpperCase()} updated to "${cleanStatus.toUpperCase()}" (Live for Customer)`);
     } catch (err) {
-      showToast('Failed to update status in Supabase.');
+      console.error('Error updating status:', err);
+      showToast('Failed to update status in database.');
     }
   }
 
@@ -434,6 +493,19 @@ export default function AdminOrders() {
 function OrderDetailsModal({ order: o, onClose, onStatusChange, onCopyId, copiedId }) {
   const { paymentLabel, shippingLabel, customerNote } = parseOrderMeta(o);
 
+  const [modalStatus, setModalStatus] = useState(o.status || 'pending');
+  const [carrier, setCarrier] = useState(o.shipping_address?.carrier || '');
+  const [trackingNumber, setTrackingNumber] = useState(o.shipping_address?.tracking_number || '');
+  const [trackingUrl, setTrackingUrl] = useState(o.shipping_address?.tracking_url || '');
+  const [isSaving, setIsSaving] = useState(false);
+
+  useEffect(() => {
+    setModalStatus(o.status || 'pending');
+    setCarrier(o.shipping_address?.carrier || '');
+    setTrackingNumber(o.shipping_address?.tracking_number || '');
+    setTrackingUrl(o.shipping_address?.tracking_url || '');
+  }, [o]);
+
   const itemsSubtotal = (o.order_items || []).reduce((sum, item) => sum + Number(item.line_total || 0), 0);
   const discountAmount = Number(o.discount_amount || 0);
   const total = Number(o.total || 0);
@@ -449,11 +521,26 @@ function OrderDetailsModal({ order: o, onClose, onStatusChange, onCopyId, copied
     shipped: { icon: TruckIcon, color: '#8b5cf6' },
     completed: { icon: CheckCircle2, color: '#10b981' },
     cancelled: { icon: XCircle, color: '#dc2626' },
-  }[o.status || 'pending'] || { icon: Clock, color: '#94a3b8' };
+  }[modalStatus || 'pending'] || { icon: Clock, color: '#94a3b8' };
   const StatusIcon = statusMeta.icon;
+
+  const handleApplyStatusAndTracking = async (overrideStatus = null) => {
+    setIsSaving(true);
+    const targetStatus = overrideStatus || modalStatus;
+    try {
+      await onStatusChange(o.id, targetStatus, {
+        carrier,
+        trackingNumber,
+        trackingUrl,
+      });
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   return (
     <motion.div
+      className="admin-modal-overlay"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
@@ -471,6 +558,7 @@ function OrderDetailsModal({ order: o, onClose, onStatusChange, onCopyId, copied
       }}
     >
       <motion.div
+        className="admin-modal-box"
         initial={{ opacity: 0, scale: 0.96, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.96, y: 16 }}
@@ -490,6 +578,7 @@ function OrderDetailsModal({ order: o, onClose, onStatusChange, onCopyId, copied
       >
         {/* Header */}
         <div
+          className="admin-modal-header"
           style={{
             padding: '20px 24px',
             borderBottom: '1px solid var(--color-border)',
@@ -520,10 +609,31 @@ function OrderDetailsModal({ order: o, onClose, onStatusChange, onCopyId, copied
             </div>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+            <button
+              type="button"
+              onClick={() => window.print()}
+              className="account-btn-secondary"
+              style={{
+                padding: '7px 12px',
+                fontSize: 12.5,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 6,
+              }}
+              title="Print official commercial invoice / packing slip"
+            >
+              <Printer size={14} />
+              <span>Print Invoice</span>
+            </button>
+
             <select
-              value={o.status || 'pending'}
-              onChange={(e) => onStatusChange(o.id, e.target.value)}
+              value={modalStatus}
+              onChange={(e) => {
+                const nextSt = e.target.value;
+                setModalStatus(nextSt);
+                handleApplyStatusAndTracking(nextSt);
+              }}
               style={{
                 padding: '7px 12px',
                 fontSize: 12.5,
@@ -551,7 +661,222 @@ function OrderDetailsModal({ order: o, onClose, onStatusChange, onCopyId, copied
           </div>
         </div>
 
-        <div style={{ overflowY: 'auto', padding: 24, display: 'flex', flexDirection: 'column', gap: 22 }}>
+        <div className="admin-modal-body" style={{ overflowY: 'auto', padding: 24, display: 'flex', flexDirection: 'column', gap: 22 }}>
+          {/* Dispatch & Customer Tracking Controls Panel */}
+          <div
+            style={{
+              background: '#131720',
+              border: '1.5px solid rgba(0, 102, 255, 0.35)',
+              borderRadius: 14,
+              padding: '18px 20px',
+              boxShadow: '0 4px 20px rgba(0, 0, 0, 0.25)',
+            }}
+          >
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginBottom: 14,
+                flexWrap: 'wrap',
+                gap: 8,
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <TruckIcon size={18} style={{ color: 'var(--color-brand)' }} />
+                <span style={{ fontWeight: 700, fontSize: 14 }}>
+                  Customer Live Tracking &amp; Status Controls
+                </span>
+              </div>
+              <span
+                style={{
+                  fontSize: 11.5,
+                  background: 'rgba(16,185,129,0.15)',
+                  color: '#34d399',
+                  border: '1px solid rgba(16,185,129,0.3)',
+                  padding: '3px 10px',
+                  borderRadius: 9999,
+                  fontWeight: 650,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 5,
+                }}
+              >
+                <span
+                  style={{
+                    width: 6,
+                    height: 6,
+                    borderRadius: '50%',
+                    background: '#10b981',
+                    display: 'inline-block',
+                    boxShadow: '0 0 6px #10b981',
+                  }}
+                />
+                Syncs Live to Customer
+              </span>
+            </div>
+
+            {/* Quick Milestone Stepper Selector */}
+            <div style={{ marginBottom: 16 }}>
+              <div style={{ fontSize: 11.5, color: '#94a3b8', marginBottom: 8, fontWeight: 600 }}>
+                Select Stage to Sync to Customer Tracking Bar:
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: 8 }}>
+                {[
+                  { key: 'pending', label: '1. Placed (Pending)', color: '#f59e0b' },
+                  { key: 'processing', label: '2. Processing (QA)', color: '#3b82f6' },
+                  { key: 'shipped', label: '3. Shipped (In Transit)', color: '#8b5cf6' },
+                  { key: 'completed', label: '4. Delivered (Done)', color: '#10b981' },
+                  { key: 'cancelled', label: 'Cancelled', color: '#dc2626' },
+                ].map((step) => {
+                  const active = modalStatus === step.key;
+                  return (
+                    <button
+                      key={step.key}
+                      type="button"
+                      onClick={() => setModalStatus(step.key)}
+                      style={{
+                        padding: '9px 10px',
+                        borderRadius: 8,
+                        fontSize: 12,
+                        fontWeight: 700,
+                        border: active
+                          ? `1.5px solid ${step.color}`
+                          : '1px solid var(--color-border)',
+                        background: active ? `${step.color}22` : '#171b23',
+                        color: active ? step.color : '#a8adb4',
+                        cursor: 'pointer',
+                        textAlign: 'center',
+                        transition: 'all 0.15s ease',
+                      }}
+                    >
+                      {step.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Courier & Tracking Number Inputs */}
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+                gap: 12,
+                marginBottom: 14,
+              }}
+            >
+              <div>
+                <label
+                  style={{
+                    display: 'block',
+                    fontSize: 11.5,
+                    color: '#94a3b8',
+                    marginBottom: 5,
+                    fontWeight: 600,
+                  }}
+                >
+                  Carrier / Courier
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. FedEx, Canada Post, DHL"
+                  value={carrier}
+                  onChange={(e) => setCarrier(e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '8px 12px',
+                    background: '#171b23',
+                    border: '1px solid var(--color-border)',
+                    borderRadius: 8,
+                    color: '#fff',
+                    fontSize: 13,
+                    outline: 'none',
+                  }}
+                />
+              </div>
+
+              <div>
+                <label
+                  style={{
+                    display: 'block',
+                    fontSize: 11.5,
+                    color: '#94a3b8',
+                    marginBottom: 5,
+                    fontWeight: 600,
+                  }}
+                >
+                  Tracking Number
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. 784920194821"
+                  value={trackingNumber}
+                  onChange={(e) => setTrackingNumber(e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '8px 12px',
+                    background: '#171b23',
+                    border: '1px solid var(--color-border)',
+                    borderRadius: 8,
+                    color: '#fff',
+                    fontSize: 13,
+                    outline: 'none',
+                  }}
+                />
+              </div>
+
+              <div>
+                <label
+                  style={{
+                    display: 'block',
+                    fontSize: 11.5,
+                    color: '#94a3b8',
+                    marginBottom: 5,
+                    fontWeight: 600,
+                  }}
+                >
+                  Direct Tracking URL (Optional)
+                </label>
+                <input
+                  type="text"
+                  placeholder="https://fedex.com/track?id=..."
+                  value={trackingUrl}
+                  onChange={(e) => setTrackingUrl(e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '8px 12px',
+                    background: '#171b23',
+                    border: '1px solid var(--color-border)',
+                    borderRadius: 8,
+                    color: '#fff',
+                    fontSize: 13,
+                    outline: 'none',
+                  }}
+                />
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
+              <button
+                type="button"
+                className="account-btn-primary"
+                disabled={isSaving}
+                onClick={() => handleApplyStatusAndTracking()}
+                style={{ padding: '8px 18px', fontSize: 13 }}
+              >
+                {isSaving ? (
+                  <RefreshCw size={14} className="animate-spin" />
+                ) : (
+                  <Check size={14} />
+                )}
+                <span>
+                  {isSaving ? 'Syncing Live...' : 'Save & Sync Live Tracking'}
+                </span>
+              </button>
+            </div>
+          </div>
+
           {/* Customer + Payment + Shipping summary strip */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 12 }}>
             <div style={{ background: '#171b23', border: '1px solid var(--color-border)', borderRadius: 10, padding: '12px 14px' }}>
@@ -718,6 +1043,7 @@ function OrderDetailsModal({ order: o, onClose, onStatusChange, onCopyId, copied
           )}
         </div>
       </motion.div>
+      <PrintableInvoice order={o} />
     </motion.div>
   );
 }
